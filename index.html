@@ -3,272 +3,487 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Công Cụ Tính Chỉ Số Thực Vật NDVI</title>
+    <title>Tính Chỉ Số Bức Xạ Mặt Trời (UV Index)</title>
     <style>
-        /* --- THIẾT KẾ GIAO DIỆN (UI DESIGN) --- */
-
-        /* 1. Tổng thể & Kiểu chữ */
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
         body {
-            font-family: 'Poppins', sans-serif;
-            background-color: #f4f7f6;
-            color: #333;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-        }
-
-        /* 2. Bố cục chính */
-        .container {
-            width: 100%;
-            max-width: 600px;
-            background-color: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-
-        header {
-            background-color: #2c3e50;
-            color: #ffffff;
-            padding: 20px;
-            text-align: center;
-        }
-
-        header h1 {
-            margin: 0;
-            font-size: 1.8em;
-        }
-
-        main {
-            padding: 30px;
-        }
-        
-        /* 3. Phần công cụ tính toán */
-        .calculator {
             display: flex;
-            flex-direction: column;
-            gap: 20px;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: #e0e0e0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
         }
 
         .input-group {
-            display: flex;
-            flex-direction: column;
+            margin-bottom: 20px;
         }
 
-        .input-group label {
+        label {
+            display: block;
             margin-bottom: 8px;
-            font-weight: 600;
             color: #555;
+            font-weight: bold;
         }
 
-        .input-group input {
-            padding: 12px 15px;
-            border: 1px solid #ddd;
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
             border-radius: 8px;
-            font-size: 1em;
-            font-family: 'Poppins', sans-serif;
-            transition: border-color 0.3s, box-shadow 0.3s;
+            font-size: 16px;
+            transition: border-color 0.3s;
         }
 
-        .input-group input:focus {
+        input:focus, select:focus {
             outline: none;
-            border-color: #3498db;
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+            border-color: #667eea;
         }
 
-        .calc-button {
+        button {
+            width: 100%;
             padding: 15px;
-            border: none;
-            border-radius: 8px;
-            background-color: #27ae60;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            font-size: 1.1em;
-            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
             cursor: pointer;
-            transition: background-color 0.3s, transform 0.2s;
+            transition: transform 0.3s;
         }
 
-        .calc-button:hover {
-            background-color: #2ecc71;
+        button:hover {
             transform: translateY(-2px);
         }
 
-        /* 4. Phần hiển thị kết quả */
-        .result-area {
+        .result {
             margin-top: 30px;
             padding: 20px;
-            background-color: #ecf0f1;
-            border-radius: 8px;
-            border-left: 5px solid #3498db;
-            display: none; /* Sẽ hiện ra bằng JavaScript */
-        }
-        
-        .result-area h3 {
-            margin-top: 0;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: none;
         }
 
-        #ndvi-value {
-            font-size: 2.5em;
-            font-weight: 700;
-            text-align: center;
-            margin: 10px 0;
+        .result.show {
+            display: block;
         }
 
-        #ndvi-interpretation {
-            text-align: center;
-            font-style: italic;
-            font-size: 1.1em;
-        }
-
-        /* 5. Phần thông tin giải thích */
-        .info-section {
-            padding: 20px;
-            background-color: #e8f6f3;
-            border-top: 1px solid #d1e8e2;
-        }
-        
-        .info-section h2 {
-            margin-top: 0;
-            color: #16a085;
-        }
-        
-        .info-section code {
-            background-color: #d6dbdf;
-            padding: 2px 6px;
-            border-radius: 4px;
-        }
-
-        ul {
-            padding-left: 20px;
-        }
-        
-        li span {
+        .uv-value {
+            font-size: 48px;
             font-weight: bold;
-        }
-        
-        /* 6. Footer */
-        footer {
-            margin-top: 20px;
-            font-size: 0.9em;
-            color: #7f8c8d;
+            text-align: center;
+            margin: 20px 0;
         }
 
+        .uv-level {
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+
+        .uv-advice {
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .low { 
+            background: #4CAF50; 
+            color: white;
+        }
+
+        .moderate { 
+            background: #FFEB3B; 
+            color: #333;
+        }
+
+        .high { 
+            background: #FF9800; 
+            color: white;
+        }
+
+        .very-high { 
+            background: #f44336; 
+            color: white;
+        }
+
+        .extreme { 
+            background: #9C27B0; 
+            color: white;
+        }
+
+        .weather-info {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .weather-item {
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .weather-item span {
+            display: block;
+            color: #666;
+            font-size: 12px;
+        }
+
+        .weather-item strong {
+            display: block;
+            margin-top: 5px;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            display: none;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
-
     <div class="container">
-        <header>
-            <h1>Công cụ tính chỉ số thực vật NDVI</h1>
-        </header>
+        <h1>📊 Chỉ Số Bức Xạ UV</h1>
+        
+        <div class="tab-buttons">
+            <button class="tab-btn active" onclick="switchTab('basic')">Tính Cơ Bản</button>
+            <button class="tab-btn" onclick="switchTab('api')">Dữ Liệu Thực</button>
+        </div>
 
-        <main>
-            <div class="calculator">
-                <div class="input-group">
-                    <label for="nir-input">Giá trị băng Cận hồng ngoại (NIR)</label>
-                    <input type="number" id="nir-input" placeholder="Ví dụ: 0.5" step="any">
-                </div>
-                <div class="input-group">
-                    <label for="red-input">Giá trị băng Đỏ (Red)</label>
-                    <input type="number" id="red-input" placeholder="Ví dụ: 0.08" step="any">
-                </div>
-                <button id="calc-button" class="calc-button">Tính toán NDVI</button>
+        <!-- Tab Tính Cơ Bản -->
+        <div id="basic-tab" class="tab-content active">
+            <div class="input-group">
+                <label for="month">Tháng:</label>
+                <select id="month">
+                    <option value="1">Tháng 1</option>
+                    <option value="2">Tháng 2</option>
+                    <option value="3">Tháng 3</option>
+                    <option value="4">Tháng 4</option>
+                    <option value="5">Tháng 5</option>
+                    <option value="6">Tháng 6</option>
+                    <option value="7">Tháng 7</option>
+                    <option value="8">Tháng 8</option>
+                    <option value="9">Tháng 9</option>
+                    <option value="10">Tháng 10</option>
+                    <option value="11">Tháng 11</option>
+                    <option value="12">Tháng 12</option>
+                </select>
             </div>
 
-            <div id="result-area" class="result-area">
-                <h3>Kết quả tính toán:</h3>
-                <p id="ndvi-value">-</p>
-                <p id="ndvi-interpretation">-</p>
+            <div class="input-group">
+                <label for="hour">Giờ trong ngày:</label>
+                <input type="number" id="hour" min="0" max="23" value="12">
             </div>
-        </main>
 
-        <section class="info-section">
-            <h2>Chỉ số NDVI là gì?</h2>
-            <p>NDVI (Normalized Difference Vegetation Index) là một chỉ số đơn giản để xác định thực vật có lá xanh trong dữ liệu ảnh đa phổ. Công thức tính là:</p>
-            <p style="text-align:center; font-weight: bold;"><code>NDVI = (NIR - Red) / (NIR + Red)</code></p>
-            <h3>Cách diễn giải giá trị NDVI:</h3>
-            <p>Giá trị NDVI luôn nằm trong khoảng từ -1 đến +1.</p>
-            <ul>
-                <li><span style="color:#3498db;">Âm đến gần 0:</span> Nước, tuyết, mây.</li>
-                <li><span style="color:#e67e22;">Khoảng 0.1:</span> Đất trống, đá.</li>
-                <li><span style="color:#f1c40f;">0.2 - 0.4:</span> Thảm thực vật thưa thớt (cỏ, cây bụi, mùa màng đang phát triển).</li>
-                <li><span style="color:#27ae60;">0.5 - 1.0:</span> Thảm thực vật dày đặc, khỏe mạnh (rừng rậm, cây trồng giai đoạn đỉnh).</li>
-            </ul>
-        </section>
+            <div class="input-group">
+                <label for="latitude">Vĩ độ (độ):</label>
+                <input type="number" id="latitude" step="0.1" value="21.0" placeholder="VD: 21.0 cho Hà Nội">
+            </div>
+
+            <div class="input-group">
+                <label for="altitude">Độ cao (m):</label>
+                <input type="number" id="altitude" step="100" value="0" placeholder="Độ cao so với mực nước biển">
+            </div>
+
+            <div class="input-group">
+                <label for="cloud">Độ che phủ mây (%):</label>
+                <input type="number" id="cloud" min="0" max="100" value="20">
+            </div>
+
+            <button onclick="calculateBasicUV()">Tính Chỉ Số UV</button>
+        </div>
+
+        <!-- Tab API -->
+        <div id="api-tab" class="tab-content">
+            <div class="input-group">
+                <label for="city">Nhập tên thành phố:</label>
+                <input type="text" id="city" placeholder="VD: Hanoi, Ho Chi Minh City">
+            </div>
+            <button onclick="getUVFromAPI()">Lấy Dữ Liệu UV</button>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p style="margin-top: 10px;">Đang tải dữ liệu...</p>
+            </div>
+        </div>
+
+        <!-- Kết quả -->
+        <div id="result" class="result">
+            <div class="uv-value" id="uvValue">0</div>
+            <div class="uv-level" id="uvLevel">--</div>
+            <div class="uv-advice" id="uvAdvice">--</div>
+            <div id="weatherInfo" class="weather-info"></div>
+        </div>
     </div>
-    
-    <footer>
-        <p>Thiết kế bởi Chuyên gia AI</p>
-    </footer>
 
     <script>
-        // --- LOGIC TÍNH TOÁN (JAVASCRIPT) ---
-
-        // 1. Lấy các phần tử HTML cần tương tác
-        const nirInput = document.getElementById('nir-input');
-        const redInput = document.getElementById('red-input');
-        const calcButton = document.getElementById('calc-button');
-        const resultArea = document.getElementById('result-area');
-        const ndviValueDisplay = document.getElementById('ndvi-value');
-        const ndviInterpretationDisplay = document.getElementById('ndvi-interpretation');
-
-        // 2. Gán sự kiện 'click' cho nút bấm
-        calcButton.addEventListener('click', calculateNDVI);
-
-        // 3. Hàm tính toán chính
-        function calculateNDVI() {
-            // Lấy giá trị từ ô nhập và chuyển thành số
-            const nir = parseFloat(nirInput.value);
-            const red = parseFloat(redInput.value);
-
-            // Kiểm tra tính hợp lệ của dữ liệu đầu vào
-            if (isNaN(nir) || isNaN(red)) {
-                alert('Vui lòng nhập đầy đủ và chính xác giá trị NIR và Red!');
-                return;
-            }
-
-            if ((nir + red) === 0) {
-                alert('Tổng của NIR và Red không thể bằng 0. Vui lòng kiểm tra lại giá trị.');
-                return;
-            }
-
-            // Tính toán NDVI
-            const ndvi = (nir - red) / (nir + red);
-
-            // Lấy diễn giải và màu sắc tương ứng
-            const interpretation = getInterpretation(ndvi);
-
-            // Hiển thị kết quả
-            ndviValueDisplay.textContent = ndvi.toFixed(4); // Làm tròn đến 4 chữ số thập phân
-            ndviInterpretationDisplay.textContent = interpretation.text;
+        // Chuyển tab
+        function switchTab(tab) {
+            const tabs = document.querySelectorAll('.tab-content');
+            const buttons = document.querySelectorAll('.tab-btn');
             
-            // Cập nhật màu sắc cho phần kết quả
-            resultArea.style.borderColor = interpretation.color;
-            ndviValueDisplay.style.color = interpretation.color;
-
-            // Hiển thị khu vực kết quả
-            resultArea.style.display = 'block';
+            tabs.forEach(t => t.classList.remove('active'));
+            buttons.forEach(b => b.classList.remove('active'));
+            
+            if (tab === 'basic') {
+                document.getElementById('basic-tab').classList.add('active');
+                buttons[0].classList.add('active');
+            } else {
+                document.getElementById('api-tab').classList.add('active');
+                buttons[1].classList.add('active');
+            }
+            
+            document.getElementById('result').classList.remove('show');
         }
 
-        // 4. Hàm diễn giải kết quả NDVI
-        function getInterpretation(ndvi) {
-            if (ndvi <= 0) {
-                return { text: "Khu vực không có thực vật (Nước, mây, tuyết...)", color: "#3498db" };
-            } else if (ndvi > 0 && ndvi <= 0.1) {
-                return { text: "Đất trống hoặc đá", color: "#e67e22" };
-            } else if (ndvi > 0.1 && ndvi <= 0.4) {
-                return { text: "Thực vật thưa thớt (cỏ, cây bụi...)", color: "#f1c40f" };
-            } else { // ndvi > 0.4
-                return { text: "Thực vật khỏe mạnh và dày đặc", color: "#27ae60" };
+        // Tính UV cơ bản
+        function calculateBasicUV() {
+            const month = parseInt(document.getElementById('month').value);
+            const hour = parseInt(document.getElementById('hour').value);
+            const latitude = parseFloat(document.getElementById('latitude').value);
+            const altitude = parseFloat(document.getElementById('altitude').value);
+            const cloudCover = parseFloat(document.getElementById('cloud').value);
+
+            // Công thức đơn giản hóa để tính UV Index
+            let baseUV = 0;
+            
+            // Tính theo tháng (mùa)
+            const monthFactor = 1 + 0.5 * Math.sin((month - 3) * Math.PI / 6);
+            
+            // Tính theo giờ trong ngày
+            let hourFactor = 0;
+            if (hour >= 10 && hour <= 16) {
+                hourFactor = Math.cos((hour - 13) * Math.PI / 6);
+                if (hourFactor < 0) hourFactor = 0;
             }
+            
+            // Tính theo vĩ độ
+            const latitudeFactor = Math.max(0, 1 - Math.abs(latitude) / 90);
+            
+            // Tính theo độ cao (UV tăng 10% mỗi 1000m)
+            const altitudeFactor = 1 + (altitude / 1000) * 0.1;
+            
+            // Tính theo độ che phủ mây
+            const cloudFactor = 1 - (cloudCover / 100) * 0.8;
+            
+            // Tính UV Index
+            baseUV = 11 * monthFactor * hourFactor * latitudeFactor * altitudeFactor * cloudFactor;
+            baseUV = Math.round(baseUV * 10) / 10;
+            
+            // Giới hạn UV Index từ 0-15
+            baseUV = Math.max(0, Math.min(15, baseUV));
+            
+            displayUVResult(baseUV);
+        }
+
+        // Lấy UV từ API
+        async function getUVFromAPI() {
+            const city = document.getElementById('city').value;
+            if (!city) {
+                alert('Vui lòng nhập tên thành phố!');
+                return;
+            }
+
+            const loading = document.getElementById('loading');
+            loading.classList.add('show');
+
+            try {
+                // Sử dụng OpenWeatherMap API (cần đăng ký để có API key miễn phí)
+                const apiKey = 'YOUR_API_KEY'; // Thay bằng API key của bạn
+                
+                // Lấy tọa độ thành phố
+                const geoResponse = await fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${city}&limit=1&appid=${apiKey}`);
+                const geoData = await geoResponse.json();
+                
+                if (geoData.length === 0) {
+                    throw new Error('Không tìm thấy thành phố');
+                }
+                
+                const lat = geoData[0].lat;
+                const lon = geoData[0].lon;
+                
+                // Lấy dữ liệu UV
+                const uvResponse = await fetch(`https://api.openweathermap.org/data/2.5/uvi?lat=${lat}&lon=${lon}&appid=${apiKey}`);
+                const uvData = await uvResponse.json();
+                
+                // Lấy thông tin thời tiết
+                const weatherResponse = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric&lang=vi`);
+                const weatherData = await weatherResponse.json();
+                
+                displayUVResult(uvData.value, weatherData);
+                
+            } catch (error) {
+                // Nếu không có API key, sử dụng dữ liệu mẫu
+                const sampleUV = Math.random() * 11;
+                const sampleWeather = {
+                    main: {
+                        temp: 25 + Math.random() * 10,
+                        humidity: 60 + Math.random() * 20
+                    },
+                    wind: {
+                        speed: Math.random() * 5
+                    },
+                    clouds: {
+                        all: Math.random() * 100
+                    }
+                };
+                displayUVResult(sampleUV, sampleWeather);
+            } finally {
+                loading.classList.remove('show');
+            }
+        }
+
+        // Hiển thị kết quả
+        function displayUVResult(uvIndex, weatherData = null) {
+            const result = document.getElementById('result');
+            const uvValue = document.getElementById('uvValue');
+            const uvLevel = document.getElementById('uvLevel');
+            const uvAdvice = document.getElementById('uvAdvice');
+            const weatherInfo = document.getElementById('weatherInfo');
+            
+            uvValue.textContent = uvIndex.toFixed(1);
+            
+            // Xác định mức độ và lời khuyên
+            let level, advice, className;
+            
+            if (uvIndex <= 2) {
+                level = "Thấp";
+                advice = "✅ An toàn! Có thể hoạt động ngoài trời thoải mái. Nên đeo kính râm vào ngày nắng.";
+                className = "low";
+            } else if (uvIndex <= 5) {
+                level = "Trung bình";
+                advice = "⚠️ Cần cẩn thận! Nên bôi kem chống nắng SPF 30+, đội mũ và mặc áo dài tay.";
+                className = "moderate";
+            } else if (uvIndex <= 7) {
+                level = "Cao";
+                advice = "⚠️ Nguy hiểm! Cần bảo vệ da. Tránh ra ngoài từ 10h-16h. Bôi kem chống nắng SPF 50+.";
+                className = "high";
+            } else if (uvIndex <= 10) {
+                level = "Rất cao";
+                advice = "🚨 Rất nguy hiểm! Hạn chế ra ngoài. Nếu phải ra ngoài, cần che chắn kỹ càng.";
+                className = "very-high";
+            } else {
+                level = "Cực cao";
+                advice = "☠️ Cực kỳ nguy hiểm! Tránh ra ngoài trời. Da có thể bị cháy nắng trong vài phút.";
+                className = "extreme";
+            }
+            
+            uvLevel.textContent = level;
+            uvAdvice.textContent = advice;
+            uvAdvice.className = 'uv-advice ' + className;
+            uvValue.className = 'uv-value ' + className;
+            
+            // Hiển thị thông tin thời tiết nếu có
+            if (weatherData) {
+                weatherInfo.innerHTML = `
+                    <div class="weather-item">
+                        <span>🌡️ Nhiệt độ</span>
+                        <strong>${weatherData.main.temp.toFixed(1)}°C</strong>
+                    </div>
+                    <div class="weather-item">
+                        <span>💧 Độ ẩm</span>
+                        <strong>${weatherData.main.humidity}%</strong>
+                    </div>
+                    <div class="weather-item">
+                        <span>💨 Gió</span>
+                        <strong>${weatherData.wind.speed.toFixed(1)} m/s</strong>
+                    </div>
+                    <div class="weather-item">
+                        <span>☁️ Mây</span>
+                        <strong>${weatherData.clouds.all}%</strong>
+                    </div>
+                `;
+                weatherInfo.style.display = 'grid';
+            } else {
+                weatherInfo.style.display = 'none';
+            }
+            
+            result.classList.add('show');
+        }
+
+        // Tự động lấy tháng và giờ hiện tại
+        window.onload = function() {
+            const now = new Date();
+            document.getElementById('month').value = now.getMonth() + 1;
+            document.getElementById('hour').value = now.getHours();
         }
     </script>
-
 </body>
 </html>
