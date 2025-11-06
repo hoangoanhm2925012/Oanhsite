@@ -1,152 +1,143 @@
-import pandas as pd
-import pytz
-import matplotlib.pyplot as plt
-from pvlib import location
-from pvlib import irradiance
+import math
+from datetime import date, timedelta
 
-def calculate_and_visualize_solar_irradiance(
-    lat, lon, timezone, date_str, tilt=None, azimuth=None, altitude=10
-):
+# --- Hằng số vật lý và toán học ---
+SOLAR_CONSTANT = 1361  # W/m^2 (Giá trị trung bình của hằng số mặt trời)
+DEG_TO_RAD = math.pi / 180  # Hệ số chuyển đổi từ độ sang radian
+RAD_TO_DEG = 180 / math.pi  # Hệ số chuyển đổi từ radian sang độ
+
+# --- Các hàm hỗ trợ tính toán hình học mặt trời ---
+
+def get_day_of_year(dt: date) -> int:
     """
-    Thiết kế hàm tính toán và trực quan hóa chỉ số bức xạ mặt trời trong một ngày.
-
-    Sử dụng mô hình clear-sky (bầu trời quang đãng) của pvlib để ước tính.
-
-    Args:
-        lat (float): Vĩ độ của địa điểm.
-        lon (float): Kinh độ của địa điểm.
-        timezone (str): Múi giờ của địa điểm (ví dụ: 'Asia/Ho_Chi_Minh').
-        date_str (str): Ngày cần tính toán, định dạng 'YYYY-MM-DD'.
-        tilt (float, optional): Độ nghiêng của bề mặt (ví dụ: tấm pin mặt trời). 
-                                Nếu không cung cấp, sẽ tính trên mặt phẳng ngang. Defaults to None.
-        azimuth (float, optional): Hướng của bề mặt (180 = hướng Nam, 0 = Bắc). Defaults to None.
-        altitude (float, optional): Độ cao so với mực nước biển (mét). Defaults to 10.
-
-    Returns:
-        tuple: (pandas.DataFrame, float)
-            - DataFrame chứa dữ liệu bức xạ theo giờ.
-            - Tổng năng lượng bức xạ trong ngày (kWh/m^2/ngày).
+    Tính số thứ tự ngày trong năm (DOY) từ một đối tượng ngày (datetime.date).
+    Ví dụ: Ngày 1 tháng 1 là 1, ngày 31 tháng 12 là 365 (hoặc 366).
     """
-    # --- Bước 1: Thiết lập Vị trí và Thời gian ---
-    # Tạo đối tượng địa điểm từ các thông số đầu vào
-    site = location.Location(latitude=lat, longitude=lon, tz=timezone, altitude=altitude)
+    return dt.timetuple().tm_yday
 
-    # Tạo một chuỗi thời gian (timeseries) cho cả ngày, tần suất 10 phút/lần
-    # Tần suất càng cao, kết quả tích phân càng chính xác
-    times = pd.date_range(
-        start=date_str, 
-        end=pd.to_datetime(date_str) + pd.Timedelta(days=1), 
-        freq='10min', 
-        tz=site.tz
+def solar_declination(doy: int) -> float:
+    """
+    Tính góc lệch mặt trời (solar declination angle) theo radian.
+    Góc này thay đổi theo ngày trong năm do nghiêng trục Trái Đất.
+    Nguồn: Duffie & Beckman (approximate)
+    """
+    return 0.409 * math.sin(0.0172 * (doy - 81)) # Công thức gần đúng
+
+def eccentricity_correction(doy: int) -> float:
+    """
+    Tính hệ số điều chỉnh quỹ đạo lệch tâm của Trái Đất (eccentricity correction factor).
+    Hệ số này mô tả sự thay đổi khoảng cách giữa Trái Đất và Mặt Trời trong năm.
+    Nguồn: Duffie & Beckman
+    """
+    return 1 + 0.033 * math.cos(2 * math.pi * doy / 365)
+
+def hour_angle_at_sunrise_sunset(latitude_rad: float, declination_rad: float) -> float:
+    """
+    Tính góc giờ lúc mặt trời mọc/lặn (sunrise/sunset hour angle) theo radian.
+    Xác định thời lượng ban ngày.
+    Trả về 0 nếu không có mặt trời mọc/lặn (đêm/ngày cực).
+    """
+    arg = -math.tan(latitude_rad) * math.tan(declination_rad)
+    
+    # Xử lý các trường hợp vùng cực nơi mặt trời có thể không mọc hoặc không lặn
+    if arg > 1:  # Mặt trời luôn trên đường chân trời (ngày cực)
+        return math.pi  # Tương đương với 12 giờ ban ngày (180 độ)
+    if arg < -1: # Mặt trời luôn dưới đường chân trời (đêm cực)
+        return 0     # Tương đương với 0 giờ ban ngày
+    
+    return math.acos(arg)
+
+def calculate_daily_extraterrestrial_horizontal_radiation(
+    latitude: float,
+    dt: date
+) -> float:
+    """
+    Tính tổng bức xạ mặt trời ngoài khí quyển trên mặt phẳng nằm ngang trong ngày (Ho).
+    Đơn vị: MJ/m² (Megajoules trên mét vuông).
+    
+    Tham số:
+        latitude (float): Vĩ độ của địa điểm tính toán (theo độ).
+        dt (datetime.date): Ngày cụ thể cần tính toán.
+        
+    Trả về:
+        float: Giá trị Ho theo MJ/m²/ngày.
+    """
+    
+    latitude_rad = latitude * DEG_TO_RAD
+    doy = get_day_of_year(dt)
+    delta_rad = solar_declination(doy)
+    E0 = eccentricity_correction(doy)
+    omega_s_rad = hour_angle_at_sunrise_sunset(latitude_rad, delta_rad)
+
+    # Công thức tính Ho theo Duffie & Beckman, Eq. 1.10.1 (đơn vị J/m^2/ngày)
+    # Ho = (24*3600/pi) * G_sc * E0 * [omega_s*sin(phi)sin(delta) + cos(phi)cos(delta)sin(omega_s)]
+    # Trong đó: omega_s, phi, delta phải là radian. G_sc là W/m^2.
+    
+    Ho_joules_per_m2_per_day = (
+        (24 * 3600 / math.pi) * SOLAR_CONSTANT * E0 *
+        (omega_s_rad * math.sin(latitude_rad) * math.sin(delta_rad) +
+         math.cos(latitude_rad) * math.cos(delta_rad) * math.sin(omega_s_rad))
     )
-
-    # --- Bước 2: Tính toán Vị trí của Mặt trời ---
-    # pvlib có thể tính toán góc thiên đỉnh (zenith) và góc phương vị (azimuth) của mặt trời
-    # tại mỗi thời điểm trong chuỗi thời gian đã tạo.
-    solar_position = site.get_solarposition(times)
-
-    # --- Bước 3: Tính toán Bức xạ Clear-Sky ---
-    # Sử dụng mô hình Ineichen để ước tính bức xạ trong điều kiện trời quang, không mây.
-    # GHI: Bức xạ ngang tổng hợp (Global Horizontal Irradiance) - tổng bức xạ trên mặt phẳng ngang.
-    # DNI: Bức xạ trực tiếp (Direct Normal Irradiance) - phần bức xạ đi thẳng từ mặt trời.
-    # DHI: Bức xạ tán xạ (Diffuse Horizontal Irradiance) - phần bức xạ bị khí quyển tán xạ.
-    clearsky = site.get_clearsky(times)
-
-    # --- Bước 4: (Nâng cao) Tính toán Bức xạ trên mặt phẳng nghiêng (POA) ---
-    if tilt is not None and azimuth is not None:
-        # Tính toán tổng bức xạ trên bề mặt nghiêng (Plane of Array Irradiance)
-        poa_irradiance = irradiance.get_total_irradiance(
-            surface_tilt=tilt,
-            surface_azimuth=azimuth,
-            solar_zenith=solar_position['apparent_zenith'],
-            solar_azimuth=solar_position['azimuth'],
-            dni=clearsky['dni'],
-            ghi=clearsky['ghi'],
-            dhi=clearsky['dhi']
-        )
-        # Gộp kết quả vào một DataFrame
-        results_df = pd.DataFrame({
-            'GHI (W/m^2)': clearsky['ghi'],
-            'DNI (W/m^2)': clearsky['dni'],
-            'DHI (W/m^2)': clearsky['dhi'],
-            f'POA Irradiance at {tilt}° (W/m^2)': poa_irradiance['poa_global']
-        })
-    else:
-        results_df = clearsky
     
-    # Chỉ lấy dữ liệu khi mặt trời ở trên đường chân trời (GHI > 0)
-    results_df = results_df[results_df['GHI (W/m^2)'] > 0]
+    # Chuyển đổi từ Joules sang Megajoules (1 MJ = 1,000,000 J)
+    Ho_MJ_per_m2_per_day = Ho_joules_per_m2_per_day / 1_000_000
     
-    # --- Bước 5: Tính tổng năng lượng bức xạ trong ngày ---
-    # Đơn vị của bức xạ là W/m^2 (công suất tại một thời điểm).
-    # Để tính năng lượng (kWh), ta cần tích phân công suất theo thời gian.
-    # Cách đơn giản: lấy giá trị trung bình giữa 2 điểm thời gian nhân với khoảng thời gian (tính bằng giờ).
-    # Tần suất là 10 phút = 10/60 giờ.
-    if 'POA Irradiance' in results_df.columns[3]:
-        daily_energy = results_df[results_df.columns[3]].sum() * (10/60) / 1000
-    else:
-        daily_energy = results_df['GHI (W/m^2)'].sum() * (10/60) / 1000 # Chuyển từ W-hour sang kWh
-    
+    return Ho_MJ_per_m2_per_day
 
-    # --- Bước 6: Trực quan hóa dữ liệu ---
-    plt.style.use('seaborn-v0_8-whitegrid') # Sử dụng style cho biểu đồ đẹp hơn
-    fig, ax = plt.subplots(figsize=(12, 6))
-
-    results_df.plot(ax=ax)
-    
-    ax.set_title(f"Chỉ số Bức xạ Mặt trời (Clear-Sky) tại ({lat}, {lon}) ngày {date_str}", fontsize=16)
-    ax.set_xlabel("Thời gian trong ngày", fontsize=12)
-    ax.set_ylabel("Bức xạ (W/m²)", fontsize=12)
-    ax.legend(title='Loại bức xạ')
-    
-    # Thêm text hiển thị tổng năng lượng
-    ax.text(0.02, 0.9, 
-            f'Tổng năng lượng bức xạ trên mặt phẳng ngang: {daily_energy:.2f} kWh/m²/ngày', 
-            transform=ax.transAxes, 
-            fontsize=12, 
-            bbox=dict(boxstyle='round,pad=0.5', fc='yellow', alpha=0.6))
-    
-    plt.tight_layout()
-    plt.show()
-
-    return results_df, daily_energy
-
-
-# --- VÍ DỤ SỬ DỤNG ---
+# --- Ví dụ sử dụng ---
 if __name__ == "__main__":
-    # --- THÔNG SỐ ĐẦU VÀO ---
-    # Ví dụ 1: Tính cho TP. Hồ Chí Minh trên mặt phẳng ngang
-    print("--- Ví dụ 1: TP. Hồ Chí Minh, mặt phẳng ngang ---")
-    hcm_lat, hcm_lon = 10.7769, 106.7009
-    hcm_timezone = 'Asia/Ho_Chi_Minh'
-    target_date = '2023-10-26' # Một ngày mùa khô
+    print("--- Tính toán Bức xạ Mặt trời Ngoài Khí quyển ---")
 
-    # Gọi hàm
-    hourly_data_hcm, daily_total_hcm = calculate_and_visualize_solar_irradiance(
-        lat=hcm_lat,
-        lon=hcm_lon,
-        timezone=hcm_timezone,
-        date_str=target_date,
-    )
+    # Ví dụ 1: Vĩ độ của Hà Nội, Việt Nam vào giữa mùa hè
+    latitude_hanoi = 21.0285  # Vĩ độ Hà Nội
+    test_date_hanoi_summer = date(2023, 7, 15) # Ngày 15 tháng 7
+    ho_hanoi_summer = calculate_daily_extraterrestrial_horizontal_radiation(latitude_hanoi, test_date_hanoi_summer)
+    
+    print(f"\nTại Hà Nội ({latitude_hanoi}°N) vào ngày {test_date_hanoi_summer}:")
+    print(f"  Bức xạ ngoài khí quyển (Ho): {ho_hanoi_summer:.2f} MJ/m²/ngày")
+    print(f"  Tương đương: {ho_hanoi_summer / 3.6:.2f} kWh/m²/ngày") # 1 kWh = 3.6 MJ
 
-    print(f"\nTổng năng lượng bức xạ (GHI) trong ngày: {daily_total_hcm:.2f} kWh/m²/ngày")
-    print("Dữ liệu bức xạ theo giờ (W/m²):")
-    print(hourly_data_hcm.head())
+    # Ví dụ 2: Vĩ độ của Hà Nội vào giữa mùa đông
+    test_date_hanoi_winter = date(2023, 1, 15) # Ngày 15 tháng 1
+    ho_hanoi_winter = calculate_daily_extraterrestrial_horizontal_radiation(latitude_hanoi, test_date_hanoi_winter)
+    
+    print(f"\nTại Hà Nội ({latitude_hanoi}°N) vào ngày {test_date_hanoi_winter}:")
+    print(f"  Bức xạ ngoài khí quyển (Ho): {ho_hanoi_winter:.2f} MJ/m²/ngày")
+    print(f"  Tương đương: {ho_hanoi_winter / 3.6:.2f} kWh/m²/ngày")
 
-    # Ví dụ 2: Tính cho Hà Nội, với tấm pin nghiêng 15 độ hướng Nam
-    print("\n\n--- Ví dụ 2: Hà Nội, tấm pin nghiêng 15 độ hướng Nam ---")
-    hanoi_lat, hanoi_lon = 21.0285, 105.8542
-    hanoi_timezone = 'Asia/Ho_Chi_Minh'
-    target_date_hn = '2023-12-21' # Ngày đông chí, mặt trời ở thấp
+    # Ví dụ 3: Vĩ độ của TP. Hồ Chí Minh, gần xích đạo
+    latitude_hcmc = 10.8231 # Vĩ độ TP. Hồ Chí Minh
+    test_date_hcmc = date(2023, 7, 15)
+    ho_hcmc = calculate_daily_extraterrestrial_horizontal_radiation(latitude_hcmc, test_date_hcmc)
+    
+    print(f"\nTại TP. Hồ Chí Minh ({latitude_hcmc}°N) vào ngày {test_date_hcmc}:")
+    print(f"  Bức xạ ngoài khí quyển (Ho): {ho_hcmc:.2f} MJ/m²/ngày")
+    print(f"  Tương đương: {ho_hcmc / 3.6:.2f} kWh/m²/ngày")
+    
+    # Ví dụ 4: Vĩ độ cao hơn (London) vào hạ chí (ngày dài nhất)
+    latitude_london = 51.5 # Vĩ độ London
+    test_date_london_summer_solstice = date(2023, 6, 21) # Hạ chí
+    ho_london_summer_solstice = calculate_daily_extraterrestrial_horizontal_radiation(latitude_london, test_date_london_summer_solstice)
+    
+    print(f"\nTại London ({latitude_london}°N) vào ngày {test_date_london_summer_solstice} (Hạ chí):")
+    print(f"  Bức xạ ngoài khí quyển (Ho): {ho_london_summer_solstice:.2f} MJ/m²/ngày")
+    print(f"  Tương đương: {ho_london_summer_solstice / 3.6:.2f} kWh/m²/ngày")
 
-    hourly_data_hn, daily_total_hn = calculate_and_visualize_solar_irradiance(
-        lat=hanoi_lat,
-        lon=hanoi_lon,
-        timezone=hanoi_timezone,
-        date_str=target_date_hn,
-        tilt=15,       # Tấm pin nghiêng 15 độ
-        azimuth=180    # Hướng về phía Nam
-    )
-    print(f"\nTổng năng lượng bức xạ trên tấm pin (POA): {daily_total_hn:.2f} kWh/m²/ngày")
-    print("Dữ liệu bức xạ theo giờ (W/m²):")
-    print(hourly_data_hn.head())
+
+    print("\n--- LƯU Ý QUAN TRỌNG VỀ BỨC XẠ THỰC TẾ ---")
+    print("Kết quả trên là 'bức xạ ngoài khí quyển' (extraterrestrial radiation).")
+    print("Đây là lượng bức xạ mặt trời đến được bề mặt khí quyển của Trái Đất.")
+    print("Để có 'bức xạ mặt trời trên bề mặt' (surface radiation) thực tế, bạn cần tính đến:")
+    print("1. Sự hấp thụ và tán xạ của khí quyển (hơi nước, khí, bụi, mây).")
+    print("2. Các điều kiện thời tiết thực tế tại địa điểm và thời điểm (trời quang, mây mù, mưa).")
+    
+    print("\nĐể ước tính bức xạ thực tế, bạn thường sẽ nhân Ho với một 'hệ số rõ ràng' (clearness index) K_T.")
+    print("Hệ số K_T này thường nằm trong khoảng:")
+    print(" - 0.3 đến 0.4 cho ngày nhiều mây.")
+    print(" - 0.5 đến 0.6 cho ngày có mây trung bình hoặc một phần quang đãng.")
+    print(" - 0.7 đến 0.8 cho ngày trời quang, trong xanh.")
+    
+    print(f"\nVí dụ: Với Ho = {ho_hanoi_summer:.2f} MJ/m²/ngày tại Hà Nội vào mùa hè.")
+    print(f"  - Nếu trời quang (K_T = 0.75), bức xạ ước tính: {ho_hanoi_summer * 0.75:.2f} MJ/m²/ngày (~ {(ho_hanoi_summer * 0.75)/3.6:.2f} kWh/m²/ngày)")
+    print(f"  - Nếu trời có mây trung bình (K_T = 0.55), bức xạ ước tính: {ho_hanoi_summer * 0.55:.2f} MJ/m²/ngày (~ {(ho_hanoi_summer * 0.55)/3.6:.2f} kWh/m²/ngày)")
+    print("\nĐể có kết quả chính xác hơn, cần sử dụng các mô hình khí tượng phức tạp hoặc các API dữ liệu bức xạ mặt trời thực tế (ví dụ: từ NASA, PVGIS, hoặc các trạm thời tiết địa phương).")
