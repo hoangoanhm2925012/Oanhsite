@@ -1,143 +1,274 @@
-import math
-from datetime import date, timedelta
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Công Cụ Tính Chỉ Số Thực Vật NDVI</title>
+    <style>
+        /* --- THIẾT KẾ GIAO DIỆN (UI DESIGN) --- */
 
-# --- Hằng số vật lý và toán học ---
-SOLAR_CONSTANT = 1361  # W/m^2 (Giá trị trung bình của hằng số mặt trời)
-DEG_TO_RAD = math.pi / 180  # Hệ số chuyển đổi từ độ sang radian
-RAD_TO_DEG = 180 / math.pi  # Hệ số chuyển đổi từ radian sang độ
+        /* 1. Tổng thể & Kiểu chữ */
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
 
-# --- Các hàm hỗ trợ tính toán hình học mặt trời ---
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
 
-def get_day_of_year(dt: date) -> int:
-    """
-    Tính số thứ tự ngày trong năm (DOY) từ một đối tượng ngày (datetime.date).
-    Ví dụ: Ngày 1 tháng 1 là 1, ngày 31 tháng 12 là 365 (hoặc 366).
-    """
-    return dt.timetuple().tm_yday
+        /* 2. Bố cục chính */
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
 
-def solar_declination(doy: int) -> float:
-    """
-    Tính góc lệch mặt trời (solar declination angle) theo radian.
-    Góc này thay đổi theo ngày trong năm do nghiêng trục Trái Đất.
-    Nguồn: Duffie & Beckman (approximate)
-    """
-    return 0.409 * math.sin(0.0172 * (doy - 81)) # Công thức gần đúng
+        header {
+            background-color: #2c3e50;
+            color: #ffffff;
+            padding: 20px;
+            text-align: center;
+        }
 
-def eccentricity_correction(doy: int) -> float:
-    """
-    Tính hệ số điều chỉnh quỹ đạo lệch tâm của Trái Đất (eccentricity correction factor).
-    Hệ số này mô tả sự thay đổi khoảng cách giữa Trái Đất và Mặt Trời trong năm.
-    Nguồn: Duffie & Beckman
-    """
-    return 1 + 0.033 * math.cos(2 * math.pi * doy / 365)
+        header h1 {
+            margin: 0;
+            font-size: 1.8em;
+        }
 
-def hour_angle_at_sunrise_sunset(latitude_rad: float, declination_rad: float) -> float:
-    """
-    Tính góc giờ lúc mặt trời mọc/lặn (sunrise/sunset hour angle) theo radian.
-    Xác định thời lượng ban ngày.
-    Trả về 0 nếu không có mặt trời mọc/lặn (đêm/ngày cực).
-    """
-    arg = -math.tan(latitude_rad) * math.tan(declination_rad)
-    
-    # Xử lý các trường hợp vùng cực nơi mặt trời có thể không mọc hoặc không lặn
-    if arg > 1:  # Mặt trời luôn trên đường chân trời (ngày cực)
-        return math.pi  # Tương đương với 12 giờ ban ngày (180 độ)
-    if arg < -1: # Mặt trời luôn dưới đường chân trời (đêm cực)
-        return 0     # Tương đương với 0 giờ ban ngày
-    
-    return math.acos(arg)
-
-def calculate_daily_extraterrestrial_horizontal_radiation(
-    latitude: float,
-    dt: date
-) -> float:
-    """
-    Tính tổng bức xạ mặt trời ngoài khí quyển trên mặt phẳng nằm ngang trong ngày (Ho).
-    Đơn vị: MJ/m² (Megajoules trên mét vuông).
-    
-    Tham số:
-        latitude (float): Vĩ độ của địa điểm tính toán (theo độ).
-        dt (datetime.date): Ngày cụ thể cần tính toán.
+        main {
+            padding: 30px;
+        }
         
-    Trả về:
-        float: Giá trị Ho theo MJ/m²/ngày.
-    """
-    
-    latitude_rad = latitude * DEG_TO_RAD
-    doy = get_day_of_year(dt)
-    delta_rad = solar_declination(doy)
-    E0 = eccentricity_correction(doy)
-    omega_s_rad = hour_angle_at_sunrise_sunset(latitude_rad, delta_rad)
+        /* 3. Phần công cụ tính toán */
+        .calculator {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
 
-    # Công thức tính Ho theo Duffie & Beckman, Eq. 1.10.1 (đơn vị J/m^2/ngày)
-    # Ho = (24*3600/pi) * G_sc * E0 * [omega_s*sin(phi)sin(delta) + cos(phi)cos(delta)sin(omega_s)]
-    # Trong đó: omega_s, phi, delta phải là radian. G_sc là W/m^2.
-    
-    Ho_joules_per_m2_per_day = (
-        (24 * 3600 / math.pi) * SOLAR_CONSTANT * E0 *
-        (omega_s_rad * math.sin(latitude_rad) * math.sin(delta_rad) +
-         math.cos(latitude_rad) * math.cos(delta_rad) * math.sin(omega_s_rad))
-    )
-    
-    # Chuyển đổi từ Joules sang Megajoules (1 MJ = 1,000,000 J)
-    Ho_MJ_per_m2_per_day = Ho_joules_per_m2_per_day / 1_000_000
-    
-    return Ho_MJ_per_m2_per_day
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
 
-# --- Ví dụ sử dụng ---
-if __name__ == "__main__":
-    print("--- Tính toán Bức xạ Mặt trời Ngoài Khí quyển ---")
+        .input-group label {
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
 
-    # Ví dụ 1: Vĩ độ của Hà Nội, Việt Nam vào giữa mùa hè
-    latitude_hanoi = 21.0285  # Vĩ độ Hà Nội
-    test_date_hanoi_summer = date(2023, 7, 15) # Ngày 15 tháng 7
-    ho_hanoi_summer = calculate_daily_extraterrestrial_horizontal_radiation(latitude_hanoi, test_date_hanoi_summer)
-    
-    print(f"\nTại Hà Nội ({latitude_hanoi}°N) vào ngày {test_date_hanoi_summer}:")
-    print(f"  Bức xạ ngoài khí quyển (Ho): {ho_hanoi_summer:.2f} MJ/m²/ngày")
-    print(f"  Tương đương: {ho_hanoi_summer / 3.6:.2f} kWh/m²/ngày") # 1 kWh = 3.6 MJ
+        .input-group input {
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            font-family: 'Poppins', sans-serif;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
 
-    # Ví dụ 2: Vĩ độ của Hà Nội vào giữa mùa đông
-    test_date_hanoi_winter = date(2023, 1, 15) # Ngày 15 tháng 1
-    ho_hanoi_winter = calculate_daily_extraterrestrial_horizontal_radiation(latitude_hanoi, test_date_hanoi_winter)
-    
-    print(f"\nTại Hà Nội ({latitude_hanoi}°N) vào ngày {test_date_hanoi_winter}:")
-    print(f"  Bức xạ ngoài khí quyển (Ho): {ho_hanoi_winter:.2f} MJ/m²/ngày")
-    print(f"  Tương đương: {ho_hanoi_winter / 3.6:.2f} kWh/m²/ngày")
+        .input-group input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
 
-    # Ví dụ 3: Vĩ độ của TP. Hồ Chí Minh, gần xích đạo
-    latitude_hcmc = 10.8231 # Vĩ độ TP. Hồ Chí Minh
-    test_date_hcmc = date(2023, 7, 15)
-    ho_hcmc = calculate_daily_extraterrestrial_horizontal_radiation(latitude_hcmc, test_date_hcmc)
-    
-    print(f"\nTại TP. Hồ Chí Minh ({latitude_hcmc}°N) vào ngày {test_date_hcmc}:")
-    print(f"  Bức xạ ngoài khí quyển (Ho): {ho_hcmc:.2f} MJ/m²/ngày")
-    print(f"  Tương đương: {ho_hcmc / 3.6:.2f} kWh/m²/ngày")
-    
-    # Ví dụ 4: Vĩ độ cao hơn (London) vào hạ chí (ngày dài nhất)
-    latitude_london = 51.5 # Vĩ độ London
-    test_date_london_summer_solstice = date(2023, 6, 21) # Hạ chí
-    ho_london_summer_solstice = calculate_daily_extraterrestrial_horizontal_radiation(latitude_london, test_date_london_summer_solstice)
-    
-    print(f"\nTại London ({latitude_london}°N) vào ngày {test_date_london_summer_solstice} (Hạ chí):")
-    print(f"  Bức xạ ngoài khí quyển (Ho): {ho_london_summer_solstice:.2f} MJ/m²/ngày")
-    print(f"  Tương đương: {ho_london_summer_solstice / 3.6:.2f} kWh/m²/ngày")
+        .calc-button {
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            background-color: #27ae60;
+            color: white;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+        }
 
+        .calc-button:hover {
+            background-color: #2ecc71;
+            transform: translateY(-2px);
+        }
 
-    print("\n--- LƯU Ý QUAN TRỌNG VỀ BỨC XẠ THỰC TẾ ---")
-    print("Kết quả trên là 'bức xạ ngoài khí quyển' (extraterrestrial radiation).")
-    print("Đây là lượng bức xạ mặt trời đến được bề mặt khí quyển của Trái Đất.")
-    print("Để có 'bức xạ mặt trời trên bề mặt' (surface radiation) thực tế, bạn cần tính đến:")
-    print("1. Sự hấp thụ và tán xạ của khí quyển (hơi nước, khí, bụi, mây).")
-    print("2. Các điều kiện thời tiết thực tế tại địa điểm và thời điểm (trời quang, mây mù, mưa).")
+        /* 4. Phần hiển thị kết quả */
+        .result-area {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #ecf0f1;
+            border-radius: 8px;
+            border-left: 5px solid #3498db;
+            display: none; /* Sẽ hiện ra bằng JavaScript */
+        }
+        
+        .result-area h3 {
+            margin-top: 0;
+        }
+
+        #ndvi-value {
+            font-size: 2.5em;
+            font-weight: 700;
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        #ndvi-interpretation {
+            text-align: center;
+            font-style: italic;
+            font-size: 1.1em;
+        }
+
+        /* 5. Phần thông tin giải thích */
+        .info-section {
+            padding: 20px;
+            background-color: #e8f6f3;
+            border-top: 1px solid #d1e8e2;
+        }
+        
+        .info-section h2 {
+            margin-top: 0;
+            color: #16a085;
+        }
+        
+        .info-section code {
+            background-color: #d6dbdf;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        ul {
+            padding-left: 20px;
+        }
+        
+        li span {
+            font-weight: bold;
+        }
+        
+        /* 6. Footer */
+        footer {
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Công cụ tính chỉ số thực vật NDVI</h1>
+        </header>
+
+        <main>
+            <div class="calculator">
+                <div class="input-group">
+                    <label for="nir-input">Giá trị băng Cận hồng ngoại (NIR)</label>
+                    <input type="number" id="nir-input" placeholder="Ví dụ: 0.5" step="any">
+                </div>
+                <div class="input-group">
+                    <label for="red-input">Giá trị băng Đỏ (Red)</label>
+                    <input type="number" id="red-input" placeholder="Ví dụ: 0.08" step="any">
+                </div>
+                <button id="calc-button" class="calc-button">Tính toán NDVI</button>
+            </div>
+
+            <div id="result-area" class="result-area">
+                <h3>Kết quả tính toán:</h3>
+                <p id="ndvi-value">-</p>
+                <p id="ndvi-interpretation">-</p>
+            </div>
+        </main>
+
+        <section class="info-section">
+            <h2>Chỉ số NDVI là gì?</h2>
+            <p>NDVI (Normalized Difference Vegetation Index) là một chỉ số đơn giản để xác định thực vật có lá xanh trong dữ liệu ảnh đa phổ. Công thức tính là:</p>
+            <p style="text-align:center; font-weight: bold;"><code>NDVI = (NIR - Red) / (NIR + Red)</code></p>
+            <h3>Cách diễn giải giá trị NDVI:</h3>
+            <p>Giá trị NDVI luôn nằm trong khoảng từ -1 đến +1.</p>
+            <ul>
+                <li><span style="color:#3498db;">Âm đến gần 0:</span> Nước, tuyết, mây.</li>
+                <li><span style="color:#e67e22;">Khoảng 0.1:</span> Đất trống, đá.</li>
+                <li><span style="color:#f1c40f;">0.2 - 0.4:</span> Thảm thực vật thưa thớt (cỏ, cây bụi, mùa màng đang phát triển).</li>
+                <li><span style="color:#27ae60;">0.5 - 1.0:</span> Thảm thực vật dày đặc, khỏe mạnh (rừng rậm, cây trồng giai đoạn đỉnh).</li>
+            </ul>
+        </section>
+    </div>
     
-    print("\nĐể ước tính bức xạ thực tế, bạn thường sẽ nhân Ho với một 'hệ số rõ ràng' (clearness index) K_T.")
-    print("Hệ số K_T này thường nằm trong khoảng:")
-    print(" - 0.3 đến 0.4 cho ngày nhiều mây.")
-    print(" - 0.5 đến 0.6 cho ngày có mây trung bình hoặc một phần quang đãng.")
-    print(" - 0.7 đến 0.8 cho ngày trời quang, trong xanh.")
-    
-    print(f"\nVí dụ: Với Ho = {ho_hanoi_summer:.2f} MJ/m²/ngày tại Hà Nội vào mùa hè.")
-    print(f"  - Nếu trời quang (K_T = 0.75), bức xạ ước tính: {ho_hanoi_summer * 0.75:.2f} MJ/m²/ngày (~ {(ho_hanoi_summer * 0.75)/3.6:.2f} kWh/m²/ngày)")
-    print(f"  - Nếu trời có mây trung bình (K_T = 0.55), bức xạ ước tính: {ho_hanoi_summer * 0.55:.2f} MJ/m²/ngày (~ {(ho_hanoi_summer * 0.55)/3.6:.2f} kWh/m²/ngày)")
-    print("\nĐể có kết quả chính xác hơn, cần sử dụng các mô hình khí tượng phức tạp hoặc các API dữ liệu bức xạ mặt trời thực tế (ví dụ: từ NASA, PVGIS, hoặc các trạm thời tiết địa phương).")
+    <footer>
+        <p>Thiết kế bởi Chuyên gia AI</p>
+    </footer>
+
+    <script>
+        // --- LOGIC TÍNH TOÁN (JAVASCRIPT) ---
+
+        // 1. Lấy các phần tử HTML cần tương tác
+        const nirInput = document.getElementById('nir-input');
+        const redInput = document.getElementById('red-input');
+        const calcButton = document.getElementById('calc-button');
+        const resultArea = document.getElementById('result-area');
+        const ndviValueDisplay = document.getElementById('ndvi-value');
+        const ndviInterpretationDisplay = document.getElementById('ndvi-interpretation');
+
+        // 2. Gán sự kiện 'click' cho nút bấm
+        calcButton.addEventListener('click', calculateNDVI);
+
+        // 3. Hàm tính toán chính
+        function calculateNDVI() {
+            // Lấy giá trị từ ô nhập và chuyển thành số
+            const nir = parseFloat(nirInput.value);
+            const red = parseFloat(redInput.value);
+
+            // Kiểm tra tính hợp lệ của dữ liệu đầu vào
+            if (isNaN(nir) || isNaN(red)) {
+                alert('Vui lòng nhập đầy đủ và chính xác giá trị NIR và Red!');
+                return;
+            }
+
+            if ((nir + red) === 0) {
+                alert('Tổng của NIR và Red không thể bằng 0. Vui lòng kiểm tra lại giá trị.');
+                return;
+            }
+
+            // Tính toán NDVI
+            const ndvi = (nir - red) / (nir + red);
+
+            // Lấy diễn giải và màu sắc tương ứng
+            const interpretation = getInterpretation(ndvi);
+
+            // Hiển thị kết quả
+            ndviValueDisplay.textContent = ndvi.toFixed(4); // Làm tròn đến 4 chữ số thập phân
+            ndviInterpretationDisplay.textContent = interpretation.text;
+            
+            // Cập nhật màu sắc cho phần kết quả
+            resultArea.style.borderColor = interpretation.color;
+            ndviValueDisplay.style.color = interpretation.color;
+
+            // Hiển thị khu vực kết quả
+            resultArea.style.display = 'block';
+        }
+
+        // 4. Hàm diễn giải kết quả NDVI
+        function getInterpretation(ndvi) {
+            if (ndvi <= 0) {
+                return { text: "Khu vực không có thực vật (Nước, mây, tuyết...)", color: "#3498db" };
+            } else if (ndvi > 0 && ndvi <= 0.1) {
+                return { text: "Đất trống hoặc đá", color: "#e67e22" };
+            } else if (ndvi > 0.1 && ndvi <= 0.4) {
+                return { text: "Thực vật thưa thớt (cỏ, cây bụi...)", color: "#f1c40f" };
+            } else { // ndvi > 0.4
+                return { text: "Thực vật khỏe mạnh và dày đặc", color: "#27ae60" };
+            }
+        }
+    </script>
+
+</body>
+</html>
