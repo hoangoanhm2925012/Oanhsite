@@ -1,1 +1,152 @@
-<p>Đây là website Hoang Oanh</p>
+import pandas as pd
+import pytz
+import matplotlib.pyplot as plt
+from pvlib import location
+from pvlib import irradiance
+
+def calculate_and_visualize_solar_irradiance(
+    lat, lon, timezone, date_str, tilt=None, azimuth=None, altitude=10
+):
+    """
+    Thiết kế hàm tính toán và trực quan hóa chỉ số bức xạ mặt trời trong một ngày.
+
+    Sử dụng mô hình clear-sky (bầu trời quang đãng) của pvlib để ước tính.
+
+    Args:
+        lat (float): Vĩ độ của địa điểm.
+        lon (float): Kinh độ của địa điểm.
+        timezone (str): Múi giờ của địa điểm (ví dụ: 'Asia/Ho_Chi_Minh').
+        date_str (str): Ngày cần tính toán, định dạng 'YYYY-MM-DD'.
+        tilt (float, optional): Độ nghiêng của bề mặt (ví dụ: tấm pin mặt trời). 
+                                Nếu không cung cấp, sẽ tính trên mặt phẳng ngang. Defaults to None.
+        azimuth (float, optional): Hướng của bề mặt (180 = hướng Nam, 0 = Bắc). Defaults to None.
+        altitude (float, optional): Độ cao so với mực nước biển (mét). Defaults to 10.
+
+    Returns:
+        tuple: (pandas.DataFrame, float)
+            - DataFrame chứa dữ liệu bức xạ theo giờ.
+            - Tổng năng lượng bức xạ trong ngày (kWh/m^2/ngày).
+    """
+    # --- Bước 1: Thiết lập Vị trí và Thời gian ---
+    # Tạo đối tượng địa điểm từ các thông số đầu vào
+    site = location.Location(latitude=lat, longitude=lon, tz=timezone, altitude=altitude)
+
+    # Tạo một chuỗi thời gian (timeseries) cho cả ngày, tần suất 10 phút/lần
+    # Tần suất càng cao, kết quả tích phân càng chính xác
+    times = pd.date_range(
+        start=date_str, 
+        end=pd.to_datetime(date_str) + pd.Timedelta(days=1), 
+        freq='10min', 
+        tz=site.tz
+    )
+
+    # --- Bước 2: Tính toán Vị trí của Mặt trời ---
+    # pvlib có thể tính toán góc thiên đỉnh (zenith) và góc phương vị (azimuth) của mặt trời
+    # tại mỗi thời điểm trong chuỗi thời gian đã tạo.
+    solar_position = site.get_solarposition(times)
+
+    # --- Bước 3: Tính toán Bức xạ Clear-Sky ---
+    # Sử dụng mô hình Ineichen để ước tính bức xạ trong điều kiện trời quang, không mây.
+    # GHI: Bức xạ ngang tổng hợp (Global Horizontal Irradiance) - tổng bức xạ trên mặt phẳng ngang.
+    # DNI: Bức xạ trực tiếp (Direct Normal Irradiance) - phần bức xạ đi thẳng từ mặt trời.
+    # DHI: Bức xạ tán xạ (Diffuse Horizontal Irradiance) - phần bức xạ bị khí quyển tán xạ.
+    clearsky = site.get_clearsky(times)
+
+    # --- Bước 4: (Nâng cao) Tính toán Bức xạ trên mặt phẳng nghiêng (POA) ---
+    if tilt is not None and azimuth is not None:
+        # Tính toán tổng bức xạ trên bề mặt nghiêng (Plane of Array Irradiance)
+        poa_irradiance = irradiance.get_total_irradiance(
+            surface_tilt=tilt,
+            surface_azimuth=azimuth,
+            solar_zenith=solar_position['apparent_zenith'],
+            solar_azimuth=solar_position['azimuth'],
+            dni=clearsky['dni'],
+            ghi=clearsky['ghi'],
+            dhi=clearsky['dhi']
+        )
+        # Gộp kết quả vào một DataFrame
+        results_df = pd.DataFrame({
+            'GHI (W/m^2)': clearsky['ghi'],
+            'DNI (W/m^2)': clearsky['dni'],
+            'DHI (W/m^2)': clearsky['dhi'],
+            f'POA Irradiance at {tilt}° (W/m^2)': poa_irradiance['poa_global']
+        })
+    else:
+        results_df = clearsky
+    
+    # Chỉ lấy dữ liệu khi mặt trời ở trên đường chân trời (GHI > 0)
+    results_df = results_df[results_df['GHI (W/m^2)'] > 0]
+    
+    # --- Bước 5: Tính tổng năng lượng bức xạ trong ngày ---
+    # Đơn vị của bức xạ là W/m^2 (công suất tại một thời điểm).
+    # Để tính năng lượng (kWh), ta cần tích phân công suất theo thời gian.
+    # Cách đơn giản: lấy giá trị trung bình giữa 2 điểm thời gian nhân với khoảng thời gian (tính bằng giờ).
+    # Tần suất là 10 phút = 10/60 giờ.
+    if 'POA Irradiance' in results_df.columns[3]:
+        daily_energy = results_df[results_df.columns[3]].sum() * (10/60) / 1000
+    else:
+        daily_energy = results_df['GHI (W/m^2)'].sum() * (10/60) / 1000 # Chuyển từ W-hour sang kWh
+    
+
+    # --- Bước 6: Trực quan hóa dữ liệu ---
+    plt.style.use('seaborn-v0_8-whitegrid') # Sử dụng style cho biểu đồ đẹp hơn
+    fig, ax = plt.subplots(figsize=(12, 6))
+
+    results_df.plot(ax=ax)
+    
+    ax.set_title(f"Chỉ số Bức xạ Mặt trời (Clear-Sky) tại ({lat}, {lon}) ngày {date_str}", fontsize=16)
+    ax.set_xlabel("Thời gian trong ngày", fontsize=12)
+    ax.set_ylabel("Bức xạ (W/m²)", fontsize=12)
+    ax.legend(title='Loại bức xạ')
+    
+    # Thêm text hiển thị tổng năng lượng
+    ax.text(0.02, 0.9, 
+            f'Tổng năng lượng bức xạ trên mặt phẳng ngang: {daily_energy:.2f} kWh/m²/ngày', 
+            transform=ax.transAxes, 
+            fontsize=12, 
+            bbox=dict(boxstyle='round,pad=0.5', fc='yellow', alpha=0.6))
+    
+    plt.tight_layout()
+    plt.show()
+
+    return results_df, daily_energy
+
+
+# --- VÍ DỤ SỬ DỤNG ---
+if __name__ == "__main__":
+    # --- THÔNG SỐ ĐẦU VÀO ---
+    # Ví dụ 1: Tính cho TP. Hồ Chí Minh trên mặt phẳng ngang
+    print("--- Ví dụ 1: TP. Hồ Chí Minh, mặt phẳng ngang ---")
+    hcm_lat, hcm_lon = 10.7769, 106.7009
+    hcm_timezone = 'Asia/Ho_Chi_Minh'
+    target_date = '2023-10-26' # Một ngày mùa khô
+
+    # Gọi hàm
+    hourly_data_hcm, daily_total_hcm = calculate_and_visualize_solar_irradiance(
+        lat=hcm_lat,
+        lon=hcm_lon,
+        timezone=hcm_timezone,
+        date_str=target_date,
+    )
+
+    print(f"\nTổng năng lượng bức xạ (GHI) trong ngày: {daily_total_hcm:.2f} kWh/m²/ngày")
+    print("Dữ liệu bức xạ theo giờ (W/m²):")
+    print(hourly_data_hcm.head())
+
+    # Ví dụ 2: Tính cho Hà Nội, với tấm pin nghiêng 15 độ hướng Nam
+    print("\n\n--- Ví dụ 2: Hà Nội, tấm pin nghiêng 15 độ hướng Nam ---")
+    hanoi_lat, hanoi_lon = 21.0285, 105.8542
+    hanoi_timezone = 'Asia/Ho_Chi_Minh'
+    target_date_hn = '2023-12-21' # Ngày đông chí, mặt trời ở thấp
+
+    hourly_data_hn, daily_total_hn = calculate_and_visualize_solar_irradiance(
+        lat=hanoi_lat,
+        lon=hanoi_lon,
+        timezone=hanoi_timezone,
+        date_str=target_date_hn,
+        tilt=15,       # Tấm pin nghiêng 15 độ
+        azimuth=180    # Hướng về phía Nam
+    )
+    print(f"\nTổng năng lượng bức xạ trên tấm pin (POA): {daily_total_hn:.2f} kWh/m²/ngày")
+    print("Dữ liệu bức xạ theo giờ (W/m²):")
+    print(hourly_data_hn.head())
