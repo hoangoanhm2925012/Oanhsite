@@ -1,0 +1,733 @@
+
+---
+
+## index.html
+
+```html
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Công cụ tính Chi trả Dịch vụ Môi trường Rừng (PFES) cho doanh nghiệp du lịch tại Việt Nam theo Nghị định 99/2010/NĐ-CP và 156/2018/NĐ-CP">
+    <meta name="keywords" content="PFES, dịch vụ môi trường rừng, du lịch sinh thái, Nghị định 99, Nghị định 156">
+    <meta name="author" content="PFES Calculator Vietnam">
+    
+    <title>Tính Chi trả DVMTR | PFES Calculator Vietnam</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="assets/images/forest-bg.svg">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-tree"></i>
+                    <span>PFES Calculator</span>
+                </div>
+                <nav class="nav">
+                    <a href="#calculator" class="nav-link">Tính toán</a>
+                    <a href="#legal" class="nav-link">Cơ sở pháp lý</a>
+                    <a href="#guide" class="nav-link">Hướng dẫn</a>
+                </nav>
+                <button class="mobile-menu-btn" aria-label="Menu">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-bg"></div>
+        <div class="container">
+            <div class="hero-content">
+                <h1 class="hero-title">
+                    <span class="highlight">Chi trả Dịch vụ</span>
+                    <br>Môi trường Rừng
+                </h1>
+                <p class="hero-subtitle">
+                    Công cụ tính toán PFES cho doanh nghiệp du lịch sinh thái
+                    <br>Tuân thủ Nghị định 99/2010/NĐ-CP & 156/2018/NĐ-CP
+                </p>
+                <a href="#calculator" class="btn btn-primary btn-lg">
+                    <i class="fas fa-calculator"></i>
+                    Bắt đầu tính toán
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Info Cards -->
+    <section class="info-section">
+        <div class="container">
+            <div class="info-grid">
+                <div class="info-card">
+                    <div class="info-icon">
+                        <i class="fas fa-percent"></i>
+                    </div>
+                    <h3>Mức chi trả</h3>
+                    <p class="info-value">1%</p>
+                    <p class="info-desc">Tổng doanh thu thực tế trong quý</p>
+                </div>
+                <div class="info-card">
+                    <div class="info-icon">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <h3>Chu kỳ</h3>
+                    <p class="info-value">Hàng quý</p>
+                    <p class="info-desc">Tính theo từng quý hoạt động</p>
+                </div>
+                <div class="info-card">
+                    <div class="info-icon">
+                        <i class="fas fa-building"></i>
+                    </div>
+                    <h3>Đối tượng</h3>
+                    <p class="info-value">DN Du lịch</p>
+                    <p class="info-desc">Hoạt động trong vùng rừng</p>
+                </div>
+                <div class="info-card">
+                    <div class="info-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h3>Pháp lý</h3>
+                    <p class="info-value">NĐ 99 & 156</p>
+                    <p class="info-desc">Nghị định Chính phủ</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Calculator Section -->
+    <section id="calculator" class="calculator-section">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-calculator"></i>
+                    Tính toán PFES
+                </h2>
+                <p class="section-desc">
+                    Nhập thông tin doanh thu của doanh nghiệp để tính khoản chi trả DVMTR
+                </p>
+            </div>
+
+            <div class="calculator-wrapper">
+                <!-- Input Form -->
+                <div class="calculator-form">
+                    <form id="pfesForm">
+                        <!-- Business Info -->
+                        <div class="form-section">
+                            <h3 class="form-section-title">
+                                <i class="fas fa-building"></i>
+                                Thông tin doanh nghiệp
+                            </h3>
+                            <div class="form-group">
+                                <label for="businessName">Tên doanh nghiệp</label>
+                                <input type="text" id="businessName" 
+                                       placeholder="VD: Công ty Du lịch ABC">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="quarter">Quý tính</label>
+                                    <select id="quarter">
+                                        <option value="1">Quý 1 (T1-T3)</option>
+                                        <option value="2">Quý 2 (T4-T6)</option>
+                                        <option value="3">Quý 3 (T7-T9)</option>
+                                        <option value="4">Quý 4 (T10-T12)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="year">Năm</label>
+                                    <select id="year"></select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="operatingDays">
+                                    Số ngày hoạt động trong quý
+                                    <span class="tooltip" data-tooltip="Tổng số ngày doanh nghiệp hoạt động trong vùng rừng">
+                                        <i class="fas fa-info-circle"></i>
+                                    </span>
+                                </label>
+                                <input type="number" id="operatingDays" 
+                                       value="90" min="1" max="92">
+                                <span class="input-hint">Mặc định: 90 ngày/quý</span>
+                            </div>
+                        </div>
+
+                        <!-- Revenue Categories -->
+                        <div class="form-section">
+                            <h3 class="form-section-title">
+                                <i class="fas fa-coins"></i>
+                                Doanh thu trung bình theo ngày (VND)
+                            </h3>
+
+                            <!-- Accommodation -->
+                            <div class="revenue-item">
+                                <div class="revenue-header">
+                                    <div class="revenue-icon accommodation">
+                                        <i class="fas fa-bed"></i>
+                                    </div>
+                                    <div class="revenue-info">
+                                        <h4>Dịch vụ lưu trú</h4>
+                                        <p>Số ngày-khách nghỉ × đơn giá phòng</p>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <div class="input-currency">
+                                        <input type="text" id="accommodation" 
+                                               class="currency-input" 
+                                               placeholder="0"
+                                               data-category="accommodation">
+                                        <span class="currency-label">VND/ngày</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Transportation -->
+                            <div class="revenue-item">
+                                <div class="revenue-header">
+                                    <div class="revenue-icon transportation">
+                                        <i class="fas fa-shuttle-van"></i>
+                                    </div>
+                                    <div class="revenue-info">
+                                        <h4>Dịch vụ vận chuyển</h4>
+                                        <p>Xe đưa đón, thuyền, cáp treo...</p>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <div class="input-currency">
+                                        <input type="text" id="transportation" 
+                                               class="currency-input" 
+                                               placeholder="0"
+                                               data-category="transportation">
+                                        <span class="currency-label">VND/ngày</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Food & Beverage -->
+                            <div class="revenue-item">
+                                <div class="revenue-header">
+                                    <div class="revenue-icon food">
+                                        <i class="fas fa-utensils"></i>
+                                    </div>
+                                    <div class="revenue-info">
+                                        <h4>Dịch vụ ăn uống</h4>
+                                        <p>Nhà hàng, quán ăn, đồ uống</p>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <div class="input-currency">
+                                        <input type="text" id="food" 
+                                               class="currency-input" 
+                                               placeholder="0"
+                                               data-category="food">
+                                        <span class="currency-label">VND/ngày</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Room Charges -->
+                            <div class="revenue-item">
+                                <div class="revenue-header">
+                                    <div class="revenue-icon room">
+                                        <i class="fas fa-door-open"></i>
+                                    </div>
+                                    <div class="revenue-info">
+                                        <h4>Phí phòng nghỉ</h4>
+                                        <p>Các khoản phí phòng bổ sung</p>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <div class="input-currency">
+                                        <input type="text" id="roomCharges" 
+                                               class="currency-input" 
+                                               placeholder="0"
+                                               data-category="roomCharges">
+                                        <span class="currency-label">VND/ngày</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Shopping -->
+                            <div class="revenue-item">
+                                <div class="revenue-header">
+                                    <div class="revenue-icon shopping">
+                                        <i class="fas fa-shopping-bag"></i>
+                                    </div>
+                                    <div class="revenue-info">
+                                        <h4>Chi tiêu mua sắm</h4>
+                                        <p>Đặc sản, quà lưu niệm, hàng hóa</p>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <div class="input-currency">
+                                        <input type="text" id="shopping" 
+                                               class="currency-input" 
+                                               placeholder="0"
+                                               data-category="shopping">
+                                        <span class="currency-label">VND/ngày</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary btn-block">
+                                <i class="fas fa-calculator"></i>
+                                Tính toán PFES
+                            </button>
+                            <button type="reset" class="btn btn-outline btn-block">
+                                <i class="fas fa-redo"></i>
+                                Làm mới
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Results Panel -->
+                <div class="calculator-results" id="resultsPanel">
+                    <div class="results-placeholder" id="resultsPlaceholder">
+                        <div class="placeholder-icon">
+                            <i class="fas fa-chart-pie"></i>
+                        </div>
+                        <h3>Kết quả tính toán</h3>
+                        <p>Nhập thông tin doanh thu và nhấn "Tính toán PFES" để xem kết quả</p>
+                    </div>
+
+                    <div class="results-content" id="resultsContent" style="display: none;">
+                        <!-- Business Summary -->
+                        <div class="result-header">
+                            <h3 id="resultBusinessName">Công ty Du lịch ABC</h3>
+                            <p id="resultPeriod">Quý 1/2024</p>
+                        </div>
+
+                        <!-- PFES Amount -->
+                        <div class="pfes-result">
+                            <div class="pfes-label">Khoản chi trả DVMTR</div>
+                            <div class="pfes-amount" id="pfesAmount">0 VND</div>
+                            <div class="pfes-rate">
+                                <span class="badge">1% doanh thu</span>
+                            </div>
+                        </div>
+
+                        <!-- Revenue Breakdown -->
+                        <div class="result-breakdown">
+                            <h4>
+                                <i class="fas fa-list-ul"></i>
+                                Chi tiết doanh thu theo quý
+                            </h4>
+                            <div class="breakdown-list">
+                                <div class="breakdown-item">
+                                    <span class="breakdown-label">
+                                        <i class="fas fa-bed"></i>
+                                        Dịch vụ lưu trú
+                                    </span>
+                                    <span class="breakdown-value" id="breakdownAccommodation">0 VND</span>
+                                </div>
+                                <div class="breakdown-item">
+                                    <span class="breakdown-label">
+                                        <i class="fas fa-shuttle-van"></i>
+                                        Dịch vụ vận chuyển
+                                    </span>
+                                    <span class="breakdown-value" id="breakdownTransportation">0 VND</span>
+                                </div>
+                                <div class="breakdown-item">
+                                    <span class="breakdown-label">
+                                        <i class="fas fa-utensils"></i>
+                                        Dịch vụ ăn uống
+                                    </span>
+                                    <span class="breakdown-value" id="breakdownFood">0 VND</span>
+                                </div>
+                                <div class="breakdown-item">
+                                    <span class="breakdown-label">
+                                        <i class="fas fa-door-open"></i>
+                                        Phí phòng nghỉ
+                                    </span>
+                                    <span class="breakdown-value" id="breakdownRoom">0 VND</span>
+                                </div>
+                                <div class="breakdown-item">
+                                    <span class="breakdown-label">
+                                        <i class="fas fa-shopping-bag"></i>
+                                        Chi tiêu mua sắm
+                                    </span>
+                                    <span class="breakdown-value" id="breakdownShopping">0 VND</span>
+                                </div>
+                            </div>
+                            <div class="breakdown-total">
+                                <span class="breakdown-label">
+                                    <strong>Tổng doanh thu quý</strong>
+                                </span>
+                                <span class="breakdown-value" id="totalRevenue">0 VND</span>
+                            </div>
+                        </div>
+
+                        <!-- Chart -->
+                        <div class="result-chart">
+                            <h4>
+                                <i class="fas fa-chart-pie"></i>
+                                Biểu đồ cơ cấu doanh thu
+                            </h4>
+                            <div class="chart-container">
+                                <canvas id="revenueChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="result-actions">
+                            <button class="btn btn-outline" onclick="printReport()">
+                                <i class="fas fa-print"></i>
+                                In báo cáo
+                            </button>
+                            <button class="btn btn-primary" onclick="exportReport()">
+                                <i class="fas fa-download"></i>
+                                Xuất PDF
+                            </button>
+                        </div>
+
+                        <!-- Legal Note -->
+                        <div class="legal-note">
+                            <i class="fas fa-gavel"></i>
+                            <p>
+                                Kết quả tính toán theo quy định tại 
+                                <strong>Nghị định 99/2010/NĐ-CP</strong> và 
+                                <strong>Nghị định 156/2018/NĐ-CP</strong>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Legal Section -->
+    <section id="legal" class="legal-section">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-gavel"></i>
+                    Cơ sở pháp lý
+                </h2>
+                <p class="section-desc">
+                    Các văn bản pháp luật điều chỉnh về chi trả dịch vụ môi trường rừng
+                </p>
+            </div>
+
+            <div class="legal-grid">
+                <!-- Decree 99 -->
+                <div class="legal-card">
+                    <div class="legal-badge">Nghị định</div>
+                    <h3>99/2010/NĐ-CP</h3>
+                    <p class="legal-date">
+                        <i class="fas fa-calendar"></i>
+                        Ngày 24/9/2010
+                    </p>
+                    <p class="legal-title">
+                        Về chính sách chi trả dịch vụ môi trường rừng
+                    </p>
+                    <div class="legal-content">
+                        <h4>Điểm chính:</h4>
+                        <ul>
+                            <li>
+                                <i class="fas fa-check"></i>
+                                Quy định 5 loại dịch vụ môi trường rừng
+                            </li>
+                            <li>
+                                <i class="fas fa-check"></i>
+                                Xác định đối tượng phải chi trả DVMTR
+                            </li>
+                            <li>
+                                <i class="fas fa-check"></i>
+                                Mức chi trả: <strong>1% tổng doanh thu</strong>
+                            </li>
+                            <li>
+                                <i class="fas fa-check"></i>
+                                Cơ chế quản lý và sử dụng nguồn thu
+                            </li>
+                        </ul>
+                    </div>
+                    <a href="https://thuvienphapluat.vn/van-ban/Tai-nguyen-Moi-truong/Nghi-dinh-99-2010-ND-CP-chinh-sach-chi-tra-dich-vu-moi-truong-rung-112668.aspx" 
+                       target="_blank" 
+                       class="btn btn-outline btn-sm">
+                        <i class="fas fa-external-link-alt"></i>
+                        Xem văn bản gốc
+                    </a>
+                </div>
+
+                <!-- Decree 156 -->
+                <div class="legal-card">
+                    <div class="legal-badge">Nghị định</div>
+                    <h3>156/2018/NĐ-CP</h3>
+                    <p class="legal-date">
+                        <i class="fas fa-calendar"></i>
+                        Ngày 16/11/2018
+                    </p>
+                    <p class="legal-title">
+                        Quy định chi tiết thi hành một số điều của Luật Lâm nghiệp
+                    </p>
+                    <div class="legal-content">
+                        <h4>Điểm chính:</h4>
+                        <ul>
+                            <li>
+                                <i class="fas fa-check"></i>
+                                Thay thế và bổ sung NĐ 99/2010
+                            </li>
+                            <li>
+                                <i class="fas fa-check"></i>
+                                Chi tiết hóa phương thức tính toán
+                            </li>
+                            <li>
+                                <i class="fas fa-check"></i>
+                                Doanh nghiệp du lịch: <strong>1% doanh thu</strong>
+                            </li>
+                            <li>
+                                <i class="fas fa-check"></i>
+                                Hướng dẫn kê khai và nộp PFES
+                            </li>
+                        </ul>
+                    </div>
+                    <a href="https://thuvienphapluat.vn/van-ban/Tai-nguyen-Moi-truong/Nghi-dinh-156-2018-ND-CP-huong-dan-Luat-Lam-nghiep-393668.aspx" 
+                       target="_blank" 
+                       class="btn btn-outline btn-sm">
+                        <i class="fas fa-external-link-alt"></i>
+                        Xem văn bản gốc
+                    </a>
+                </div>
+            </div>
+
+            <!-- PFES Rate Table -->
+            <div class="rate-table-wrapper">
+                <h3>
+                    <i class="fas fa-table"></i>
+                    Mức chi trả DVMTR theo đối tượng
+                </h3>
+                <div class="table-responsive">
+                    <table class="rate-table">
+                        <thead>
+                            <tr>
+                                <th>Đối tượng sử dụng DVMTR</th>
+                                <th>Mức chi trả</th>
+                                <th>Căn cứ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="highlight">
+                                <td>
+                                    <i class="fas fa-hotel"></i>
+                                    Doanh nghiệp du lịch sinh thái
+                                </td>
+                                <td><strong>1% doanh thu</strong></td>
+                                <td>Điều 57, NĐ 156/2018</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <i class="fas fa-tint"></i>
+                                    Cơ sở sản xuất thủy điện
+                                </td>
+                                <td>36 đồng/kWh</td>
+                                <td>Điều 57, NĐ 156/2018</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <i class="fas fa-water"></i>
+                                    Cơ sở sản xuất nước sạch
+                                </td>
+                                <td>52 đồng/m³</td>
+                                <td>Điều 57, NĐ 156/2018</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <i class="fas fa-industry"></i>
+                                    Cơ sở sản xuất công nghiệp
+                                </td>
+                                <td>50 đồng/m³</td>
+                                <td>Điều 57, NĐ 156/2018</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Guide Section -->
+    <section id="guide" class="guide-section">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-book-open"></i>
+                    Hướng dẫn sử dụng
+                </h2>
+                <p class="section-desc">
+                    Các bước tính toán và kê khai PFES cho doanh nghiệp du lịch
+                </p>
+            </div>
+
+            <div class="guide-steps">
+                <div class="guide-step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h4>Nhập thông tin doanh nghiệp</h4>
+                        <p>Điền tên doanh nghiệp, quý/năm tính toán và số ngày hoạt động thực tế trong vùng rừng.</p>
+                    </div>
+                </div>
+                <div class="guide-step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h4>Nhập doanh thu trung bình ngày</h4>
+                        <p>Điền doanh thu trung bình mỗi ngày theo 5 hạng mục: lưu trú, vận chuyển, ăn uống, phòng nghỉ, mua sắm.</p>
+                    </div>
+                </div>
+                <div class="guide-step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h4>Tính toán kết quả</h4>
+                        <p>Nhấn "Tính toán PFES" để xem tổng doanh thu quý và khoản chi trả DVMTR (1%).</p>
+                    </div>
+                </div>
+                <div class="guide-step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h4>Xuất báo cáo</h4>
+                        <p>In hoặc xuất PDF kết quả để lưu trữ và nộp cho Quỹ Bảo vệ và Phát triển rừng.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ -->
+            <div class="faq-wrapper">
+                <h3>
+                    <i class="fas fa-question-circle"></i>
+                    Câu hỏi thường gặp
+                </h3>
+                <div class="faq-list">
+                    <div class="faq-item">
+                        <button class="faq-question">
+                            Doanh nghiệp nào phải chi trả DVMTR?
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <div class="faq-answer">
+                            <p>Theo Nghị định 156/2018/NĐ-CP, các tổ chức, cá nhân kinh doanh dịch vụ du lịch có sử dụng dịch vụ môi trường rừng (du lịch sinh thái, nghỉ dưỡng, giải trí trong rừng) phải chi trả DVMTR với mức 1% tổng doanh thu thực tế.</p>
+                        </div>
+                    </div>
+                    <div class="faq-item">
+                        <button class="faq-question">
+                            Thời hạn nộp tiền DVMTR như thế nào?
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <div class="faq-answer">
+                            <p>Doanh nghiệp du lịch nộp tiền chi trả DVMTR theo quý, trong vòng 30 ngày kể từ ngày kết thúc quý, vào tài khoản của Quỹ Bảo vệ và Phát triển rừng cấp tỉnh.</p>
+                        </div>
+                    </div>
+                    <div class="faq-item">
+                        <button class="faq-question">
+                            Doanh thu nào được tính vào PFES?
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <div class="faq-answer">
+                            <p>Tất cả doanh thu phát sinh từ hoạt động du lịch trong vùng rừng, bao gồm: dịch vụ lưu trú, vận chuyển, ăn uống, phí phòng, và chi tiêu mua sắm của khách du lịch.</p>
+                        </div>
+                    </div>
+                    <div class="faq-item">
+                        <button class="faq-question">
+                            Không nộp DVMTR sẽ bị xử phạt thế nào?
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <div class="faq-answer">
+                            <p>Theo Nghị định 35/2019/NĐ-CP, hành vi không chi trả hoặc chi trả không đầy đủ tiền DVMTR có thể bị phạt tiền từ 5.000.000 đến 50.000.000 đồng tùy mức độ vi phạm.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-col">
+                    <div class="footer-logo">
+                        <i class="fas fa-tree"></i>
+                        <span>PFES Calculator</span>
+                    </div>
+                    <p>Công cụ tính toán chi trả dịch vụ môi trường rừng cho doanh nghiệp du lịch tại Việt Nam.</p>
+                </div>
+                <div class="footer-col">
+                    <h4>Liên kết</h4>
+                    <ul>
+                        <li><a href="#calculator">Tính toán PFES</a></li>
+                        <li><a href="#legal">Cơ sở pháp lý</a></li>
+                        <li><a href="#guide">Hướng dẫn</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Văn bản pháp luật</h4>
+                    <ul>
+                        <li><a href="https://thuvienphapluat.vn/van-ban/Tai-nguyen-Moi-truong/Nghi-dinh-99-2010-ND-CP-chinh-sach-chi-tra-dich-vu-moi-truong-rung-112668.aspx" target="_blank">Nghị định 99/2010</a></li>
+                        <li><a href="https://thuvienphapluat.vn/van-ban/Tai-nguyen-Moi-truong/Nghi-dinh-156-2018-ND-CP-huong-dan-Luat-Lam-nghiep-393668.aspx" target="_blank">Nghị định 156/2018</a></li>
+                        <li><a href="https://vnff.vn" target="_blank">Quỹ BVPTR Việt Nam</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Liên hệ hỗ trợ</h4>
+                    <ul class="contact-list">
+                        <li>
+                            <i class="fas fa-phone"></i>
+                            (024) 3843 8809
+                        </li>
+                        <li>
+                            <i class="fas fa-globe"></i>
+                            <a href="https://vnff.vn" target="_blank">vnff.vn</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 PFES Calculator Vietnam. Developed for educational purposes.</p>
+                <p>
+                    <i class="fas fa-code"></i>
+                    Open source on 
+                    <a href="https://github.com" target="_blank">GitHub</a>
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Mobile Menu Overlay -->
+    <div class="mobile-menu-overlay" id="mobileMenuOverlay">
+        <div class="mobile-menu">
+            <button class="mobile-menu-close" aria-label="Close">
+                <i class="fas fa-times"></i>
+            </button>
+            <nav class="mobile-nav">
+                <a href="#calculator">Tính toán</a>
+                <a href="#legal">Cơ sở pháp lý</a>
+                <a href="#guide">Hướng dẫn</a>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <!-- Custom Scripts -->
+    <script src="js/utils.js"></script>
+    <script src="js/calculator.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
