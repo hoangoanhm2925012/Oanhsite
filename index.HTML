@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tính Toán Chỉ Số AQI Trong Ngày</title>
+    <style>
+        /* ===== RESET & BASE STYLES ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* ===== CONTAINER ===== */
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 1.8em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 0.95em;
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        .main-content {
+            padding: 30px;
+        }
+
+        /* ===== INFO BOX ===== */
+        .info-box {
+            background: #e8f4fd;
+            border-left: 4px solid #2196F3;
+            padding: 15px 20px;
+            margin-bottom: 25px;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .info-box h3 {
+            color: #1565C0;
+            margin-bottom: 8px;
+            font-size: 1em;
+        }
+
+        .info-box p {
+            color: #555;
+            font-size: 0.9em;
+            line-height: 1.6;
+        }
+
+        /* ===== INPUT FORM ===== */
+        .input-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+        }
+
+        .input-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .input-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .input-group {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .input-group:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+        }
+
+        .input-group label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+
+        .input-group .unit {
+            font-weight: normal;
+            color: #666;
+            font-size: 0.85em;
+        }
+
+        .input-group .description {
+            font-size: 0.8em;
+            color: #888;
+            margin-bottom: 10px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        .input-group input:invalid {
+            border-color: #ff5252;
+        }
+
+        /* ===== BUTTONS ===== */
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 25px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 14px 35px;
+            font-size: 1.05em;
+            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+            border: 2px solid #ddd;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        /* ===== RESULTS SECTION ===== */
+        .results-section {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .results-section.show {
+            display: block;
+        }
+
+        .main-result {
+            text-align: center;
+            padding: 40px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .main-result::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.1);
+            transform: skewY(-3deg);
+        }
+
+        .aqi-value {
+            font-size: 4em;
+            font-weight: 700;
+            text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        .aqi-label {
+            font-size: 1.5em;
+            font-weight: 600;
+            margin-top: 10px;
+            position: relative;
+        }
+
+        .aqi-description {
+            margin-top: 15px;
+            font-size: 1em;
+            opacity: 0.95;
+            position: relative;
+        }
+
+        /* ===== DETAIL TABLE ===== */
+        .detail-section {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .detail-section h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.1em;
+        }
+
+        .detail-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        .detail-table th,
+        .detail-table td {
+            padding: 14px 18px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .detail-table th {
+            background: #2a5298;
+            color: white;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .detail-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .detail-table tr:hover {
+            background: #f5f5f5;
+        }
+
+        .aqi-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            color: white;
+            font-weight: 600;
+            font-size: 0.85em;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        /* ===== AQI SCALE ===== */
+        .aqi-scale {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+        }
+
+        .aqi-scale h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.1em;
+        }
+
+        .scale-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+        }
+
+        .scale-item {
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.85em;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .scale-item .range {
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+
+        /* ===== AQI COLORS ===== */
+        .aqi-good { background: #00e400; color: #000; }
+        .aqi-moderate { background: #ffff00; color: #000; }
+        .aqi-unhealthy-sensitive { background: #ff7e00; color: #fff; }
+        .aqi-unhealthy { background: #ff0000; color: #fff; }
+        .aqi-very-unhealthy { background: #8f3f97; color: #fff; }
+        .aqi-hazardous { background: #7e0023; color: #fff; }
+
+        /* ===== FORMULA BOX ===== */
+        .formula-box {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 20px;
+            margin: 25px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .formula-box h3 {
+            color: #e65100;
+            margin-bottom: 12px;
+        }
+
+        .formula {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1em;
+            text-align: center;
+            margin: 10px 0;
+            border: 1px solid #ffcc80;
+        }
+
+        .formula-note {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 10px;
+            line-height: 1.6;
+        }
+
+        /* ===== FOOTER ===== */
+        .footer {
+            text-align: center;
+            padding: 20px;
+            background: #f5f5f5;
+            color: #666;
+            font-size: 0.85em;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 1.4em;
+            }
+
+            .aqi-value {
+                font-size: 3em;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .detail-table {
+                font-size: 0.85em;
+            }
+
+            .detail-table th,
+            .detail-table td {
+                padding: 10px 12px;
+            }
+        }
+
+        /* ===== ERROR MESSAGE ===== */
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            border-left: 4px solid #c62828;
+        }
+
+        .error-message.show {
+            display: block;
+            animation: shake 0.5s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <div class="header">
+            <h1>🌍 TÍNH TOÁN CHỈ SỐ AQI TRONG NGÀY</h1>
+            <p>Công cụ tính toán chỉ số chất lượng không khí theo phương pháp US EPA</p>
+        </div>
+
+        <div class="main-content">
+            <!-- INFO BOX -->
+            <div class="info-box">
+                <h3>📘 AQI là gì?</h3>
+                <p>
+                    <strong>AQI (Air Quality Index)</strong> là chỉ số chất lượng không khí, được sử dụng để đánh giá 
+                    mức độ ô nhiễm không khí và ảnh hưởng đến sức khỏe con người. Chỉ số AQI càng cao, 
+                    mức độ ô nhiễm càng nghiêm trọng và nguy cơ ảnh hưởng sức khỏe càng lớn.
+                </p>
+            </div>
+
+            <!-- ERROR MESSAGE -->
+            <div class="error-message" id="errorMessage"></div>
+
+            <!-- INPUT SECTION -->
+            <div class="input-section">
+                <h2>📊 Nhập nồng độ các chất ô nhiễm</h2>
+                <div class="input-grid">
+                    <!-- PM2.5 -->
+                    <div class="input-group">
+                        <label>PM2.5 <span class="unit">(µg/m³)</span></label>
+                        <div class="description">Bụi mịn đường kính ≤ 2.5 micromet</div>
+                        <input type="number" id="pm25" min="0" step="0.1" placeholder="Ví dụ: 35.4">
+                    </div>
+
+                    <!-- PM10 -->
+                    <div class="input-group">
+                        <label>PM10 <span class="unit">(µg/m³)</span></label>
+                        <div class="description">Bụi thô đường kính ≤ 10 micromet</div>
+                        <input type="number" id="pm10" min="0" step="0.1" placeholder="Ví dụ: 154">
+                    </div>
+
+                    <!-- SO2 -->
+                    <div class="input-group">
+                        <label>SO₂ <span class="unit">(ppb)</span></label>
+                        <div class="description">Lưu huỳnh dioxide</div>
+                        <input type="number" id="so2" min="0" step="0.1" placeholder="Ví dụ: 75">
+                    </div>
+
+                    <!-- NO2 -->
+                    <div class="input-group">
+                        <label>NO₂ <span class="unit">(ppb)</span></label>
+                        <div class="description">Nitrogen dioxide</div>
+                        <input type="number" id="no2" min="0" step="0.1" placeholder="Ví dụ: 100">
+                    </div>
+
+                    <!-- CO -->
+                    <div class="input-group">
+                        <label>CO <span class="unit">(ppm)</span></label>
+                        <div class="description">Carbon monoxide (trung bình 8 giờ)</div>
+                        <input type="number" id="co" min="0" step="0.1" placeholder="Ví dụ: 4.4">
+                    </div>
+
+                    <!-- O3 -->
+                    <div class="input-group">
+                        <label>O₃ <span class="unit">(ppb)</span></label>
+                        <div class="description">Ozone (trung bình 8 giờ)</div>
+                        <input type="number" id="o3" min="0" step="0.1" placeholder="Ví dụ: 70">
+                    </div>
+                </div>
+
+                <!-- BUTTONS -->
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="calculateAQI()">
+                        📈 Tính AQI
+                    </button>
+                    <button class="btn btn-secondary" onclick="resetForm()">
+                        🔄 Làm mới
+                    </button>
+                </div>
+            </div>
+
+            <!-- FORMULA BOX -->
+            <div class="formula-box">
+                <h3>📐 Công thức tính AQI (US EPA)</h3>
+                <div class="formula">
+                    AQI = [(I<sub>hi</sub> - I<sub>lo</sub>) / (C<sub>hi</sub> - C<sub>lo</sub>)] × (C - C<sub>lo</sub>) + I<sub>lo</sub>
+                </div>
+                <div class="formula-note">
+                    <strong>Trong đó:</strong><br>
+                    • <strong>C</strong> = Nồng độ chất ô nhiễm đo được<br>
+                    • <strong>C<sub>lo</sub></strong> = Ngưỡng nồng độ thấp tương ứng với C<br>
+                    • <strong>C<sub>hi</sub></strong> = Ngưỡng nồng độ cao tương ứng với C<br>
+                    • <strong>I<sub>lo</sub></strong> = Giá trị AQI tại ngưỡng C<sub>lo</sub><br>
+                    • <strong>I<sub>hi</sub></strong> = Giá trị AQI tại ngưỡng C<sub>hi</sub>
+                </div>
+            </div>
+
+            <!-- RESULTS SECTION -->
+            <div class="results-section" id="resultsSection">
+                <!-- Main Result -->
+                <div class="main-result" id="mainResult">
+                    <div class="aqi-value" id="aqiValue">--</div>
+                    <div class="aqi-label" id="aqiLabel">--</div>
+                    <div class="aqi-description" id="aqiDescription">--</div>
+                </div>
+
+                <!-- Detail Table -->
+                <div class="detail-section">
+                    <h3>📋 Chi tiết AQI theo từng chất ô nhiễm</h3>
+                    <table class="detail-table">
+                        <thead>
+                            <tr>
+                                <th>Chất ô nhiễm</th>
+                                <th>Nồng độ</th>
+                                <th>AQI thành phần</th>
+                                <th>Mức đánh giá</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detailTableBody">
+                            <!-- Dynamic content -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- AQI SCALE -->
+            <div class="aqi-scale">
+                <h3>🎨 Bảng phân loại mức AQI</h3>
+                <div class="scale-items">
+                    <div class="scale-item aqi-good">
+                        <div class="range">0 - 50</div>
+                        <div>Tốt</div>
+                    </div>
+                    <div class="scale-item aqi-moderate">
+                        <div class="range">51 - 100</div>
+                        <div>Trung bình</div>
+                    </div>
+                    <div class="scale-item aqi-unhealthy-sensitive">
+                        <div class="range">101 - 150</div>
+                        <div>Kém</div>
+                    </div>
+                    <div class="scale-item aqi-unhealthy">
+                        <div class="range">151 - 200</div>
+                        <div>Xấu</div>
+                    </div>
+                    <div class="scale-item aqi-very-unhealthy">
+                        <div class="range">201 - 300</div>
+                        <div>Rất xấu</div>
+                    </div>
+                    <div class="scale-item aqi-hazardous">
+                        <div class="range">301 - 500</div>
+                        <div>Nguy hại</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="footer">
+            <p>⚠️ <em>Kết quả mang tính mô phỏng phục vụ mục đích giáo dục.</em></p>
+            <p>Dữ liệu và phương pháp tính toán dựa theo tiêu chuẩn US EPA.</p>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * ============================================
+         * BẢNG NGƯỠNG NỒNG ĐỘ VÀ AQI THEO US EPA
+         * ============================================
+         * 
+         * Mỗi chất ô nhiễm có các ngưỡng breakpoint khác nhau
+         * Cấu trúc: [Clo, Chi, Ilo, Ihi]
+         * - Clo: Ngưỡng nồng độ thấp
+         * - Chi: Ngưỡng nồng độ cao  
+         * - Ilo: AQI tại ngưỡng thấp
+         * - Ihi: AQI tại ngưỡng cao
+         */
+        
+        // Bảng ngưỡng cho PM2.5 (µg/m³) - Trung bình 24 giờ
+        const PM25_BREAKPOINTS = [
+            [0.0, 12.0, 0, 50],        // Tốt
+            [12.1, 35.4, 51, 100],     // Trung bình
+            [35.5, 55.4, 101, 150],    // Kém (Không tốt cho nhóm nhạy cảm)
+            [55.5, 150.4, 151, 200],   // Xấu
+            [150.5, 250.4, 201, 300],  // Rất xấu
+            [250.5, 350.4, 301, 400],  // Nguy hại
+            [350.5, 500.4, 401, 500]   // Nguy hại nghiêm trọng
+        ];
+
+        // Bảng ngưỡng cho PM10 (µg/m³) - Trung bình 24 giờ
+        const PM10_BREAKPOINTS = [
+            [0, 54, 0, 50],
+            [55, 154, 51, 100],
+            [155, 254, 101, 150],
+            [255, 354, 151, 200],
+            [355, 424, 201, 300],
+            [425, 504, 301, 400],
+            [505, 604, 401, 500]
+        ];
+
+        // Bảng ngưỡng cho SO2 (ppb) - Trung bình 1 giờ
+        const SO2_BREAKPOINTS = [
+            [0, 35, 0, 50],
+            [36, 75, 51, 100],
+            [76, 185, 101, 150],
+            [186, 304, 151, 200],
+            [305, 604, 201, 300],
+            [605, 804, 301, 400],
+            [805, 1004, 401, 500]
+        ];
+
+        // Bảng ngưỡng cho NO2 (ppb) - Trung bình 1 giờ
+        const NO2_BREAKPOINTS = [
+            [0, 53, 0, 50],
+            [54, 100, 51, 100],
+            [101, 360, 101, 150],
+            [361, 649, 151, 200],
+            [650, 1249, 201, 300],
+            [1250, 1649, 301, 400],
+            [1650, 2049, 401, 500]
+        ];
+
+        // Bảng ngưỡng cho CO (ppm) - Trung bình 8 giờ
+        const CO_BREAKPOINTS = [
+            [0.0, 4.4, 0, 50],
+            [4.5, 9.4, 51, 100],
+            [9.5, 12.4, 101, 150],
+            [12.5, 15.4, 151, 200],
+            [15.5, 30.4, 201, 300],
+            [30.5, 40.4, 301, 400],
+            [40.5, 50.4, 401, 500]
+        ];
+
+        // Bảng ngưỡng cho O3 (ppb) - Trung bình 8 giờ
+        const O3_BREAKPOINTS = [
+            [0, 54, 0, 50],
+            [55, 70, 51, 100],
+            [71, 85, 101, 150],
+            [86, 105, 151, 200],
+            [106, 200, 201, 300],
+            [201, 404, 301, 400],  // Chuyển sang trung bình 1 giờ cho mức này
+            [405, 604, 401, 500]
+        ];
+
+        /**
+         * ============================================
+         * BẢNG PHÂN LOẠI MỨC AQI
+         * ============================================
+         */
+        const AQI_CATEGORIES = [
+            {
+                min: 0,
+                max: 50,
+                label: "Tốt",
+                color: "#00e400",
+                textColor: "#000",
+                className: "aqi-good",
+                description: "Chất lượng không khí tốt, không ảnh hưởng đến sức khỏe."
+            },
+            {
+                min: 51,
+                max: 100,
+                label: "Trung bình",
+                color: "#ffff00",
+                textColor: "#000",
+                className: "aqi-moderate",
+                description: "Chất lượng không khí chấp nhận được. Một số người nhạy cảm có thể bị ảnh hưởng nhẹ."
+            },
+            {
+                min: 101,
+                max: 150,
+                label: "Kém",
+                color: "#ff7e00",
+                textColor: "#fff",
+                className: "aqi-unhealthy-sensitive",
+                description: "Nhóm người nhạy cảm (trẻ em, người già, người có bệnh hô hấp) có thể bị ảnh hưởng."
+            },
+            {
+                min: 151,
+                max: 200,
+                label: "Xấu",
+                color: "#ff0000",
+                textColor: "#fff",
+                className: "aqi-unhealthy",
+                description: "Mọi người đều có thể bắt đầu bị ảnh hưởng sức khỏe. Hạn chế hoạt động ngoài trời."
+            },
+            {
+                min: 201,
+                max: 300,
+                label: "Rất xấu",
+                color: "#8f3f97",
+                textColor: "#fff",
+                className: "aqi-very-unhealthy",
+                description: "Cảnh báo sức khỏe: Mọi người đều có thể bị ảnh hưởng nghiêm trọng."
+            },
+            {
+                min: 301,
+                max: 500,
+                label: "Nguy hại",
+                color: "#7e0023",
+                textColor: "#fff",
+                className: "aqi-hazardous",
+                description: "Cảnh báo khẩn cấp: Toàn bộ dân số có nguy cơ bị ảnh hưởng nghiêm trọng."
+            }
+        ];
+
+        /**
+         * ============================================
+         * HÀM TÍNH AQI CHO MỘT CHẤT Ô NHIỄM
+         * ============================================
+         * 
+         * Áp dụng công thức nội suy tuyến tính của US EPA:
+         * AQI = [(Ihi - Ilo) / (Chi - Clo)] × (C - Clo) + Ilo
+         * 
+         * @param {number} concentration - Nồng độ chất ô nhiễm đo được
+         * @param {Array} breakpoints - Bảng ngưỡng của chất ô nhiễm
+         * @returns {number|null} - Giá trị AQI hoặc null nếu vượt ngưỡng
+         */
+        function calculatePollutantAQI(concentration, breakpoints) {
+            // Kiểm tra nồng độ có hợp lệ không
+            if (concentration < 0 || isNaN(concentration)) {
+                return null;
+            }
+
+            // Tìm khoảng ngưỡng phù hợp
+            for (let i = 0; i < breakpoints.length; i++) {
+                const [Clo, Chi, Ilo, Ihi] = breakpoints[i];
+                
+                if (concentration >= Clo && concentration <= Chi) {
+                    // Áp dụng công thức nội suy AQI
+                    const aqi = ((Ihi - Ilo) / (Chi - Clo)) * (concentration - Clo) + Ilo;
+                    return Math.round(aqi);
+                }
+            }
+
+            // Nếu vượt quá ngưỡng cao nhất, trả về giá trị tối đa
+            if (concentration > breakpoints[breakpoints.length - 1][1]) {
+                return 500; // Giá trị AQI tối đa
+            }
+
+            return null;
+        }
+
+        /**
+         * ============================================
+         * HÀM LẤY THÔNG TIN PHÂN LOẠI AQI
+         * ============================================
+         * 
+         * @param {number} aqi - Giá trị AQI
+         * @returns {Object} - Thông tin phân loại
+         */
+        function getAQICategory(aqi) {
+            for (let category of AQI_CATEGORIES) {
+                if (aqi >= category.min && aqi <= category.max) {
+                    return category;
+                }
+            }
+            // Mặc định trả về mức nguy hại nếu vượt 500
+            return AQI_CATEGORIES[5];
+        }
+
+        /**
+         * ============================================
+         * HÀM KIỂM TRA DỮ LIỆU ĐẦU VÀO
+         * ============================================
+         */
+        function validateInputs() {
+            const inputs = ['pm25', 'pm10', 'so2', 'no2', 'co', 'o3'];
+            let hasValue = false;
+            let errors = [];
+
+            for (let id of inputs) {
+                const input = document.getElementById(id);
+                const value = input.value.trim();
+
+                if (value !== '') {
+                    hasValue = true;
+                    const numValue = parseFloat(value);
+
+                    if (isNaN(numValue)) {
+                        errors.push(`${id.toUpperCase()}: Giá trị không hợp lệ`);
+                    } else if (numValue < 0) {
+                        errors.push(`${id.toUpperCase()}: Giá trị không được âm`);
+                    }
+                }
+            }
+
+            if (!hasValue) {
+                errors.push("Vui lòng nhập ít nhất một giá trị nồng độ");
+            }
+
+            return {
+                isValid: errors.length === 0 && hasValue,
+                errors: errors
+            };
+        }
+
+        /**
+         * ============================================
+         * HÀM CHÍNH TÍNH TOÁN AQI
+         * ============================================
+         */
+        function calculateAQI() {
+            // Kiểm tra dữ liệu đầu vào
+            const validation = validateInputs();
+            const errorDiv = document.getElementById('errorMessage');
+
+            if (!validation.isValid) {
+                errorDiv.innerHTML = '⚠️ ' + validation.errors.join('<br>⚠️ ');
+                errorDiv.classList.add('show');
+                return;
+            }
+
+            errorDiv.classList.remove('show');
+
+            // Lấy giá trị từ các input
+            const pm25 = parseFloat(document.getElementById('pm25').value) || null;
+            const pm10 = parseFloat(document.getElementById('pm10').value) || null;
+            const so2 = parseFloat(document.getElementById('so2').value) || null;
+            const no2 = parseFloat(document.getElementById('no2').value) || null;
+            const co = parseFloat(document.getElementById('co').value) || null;
+            const o3 = parseFloat(document.getElementById('o3').value) || null;
+
+            // Tính AQI cho từng chất
+            const pollutantResults = [];
+
+            if (pm25 !== null) {
+                const aqi = calculatePollutantAQI(pm25, PM25_BREAKPOINTS);
+                pollutantResults.push({
+                    name: 'PM2.5',
+                    concentration: pm25,
+                    unit: 'µg/m³',
+                    aqi: aqi
+                });
+            }
+
+            if (pm10 !== null) {
+                const aqi = calculatePollutantAQI(pm10, PM10_BREAKPOINTS);
+                pollutantResults.push({
+                    name: 'PM10',
+                    concentration: pm10,
+                    unit: 'µg/m³',
+                    aqi: aqi
+                });
+            }
+
+            if (so2 !== null) {
+                const aqi = calculatePollutantAQI(so2, SO2_BREAKPOINTS);
+                pollutantResults.push({
+                    name: 'SO₂',
+                    concentration: so2,
+                    unit: 'ppb',
+                    aqi: aqi
+                });
+            }
+
+            if (no2 !== null) {
+                const aqi = calculatePollutantAQI(no2, NO2_BREAKPOINTS);
+                pollutantResults.push({
+                    name: 'NO₂',
+                    concentration: no2,
+                    unit: 'ppb',
+                    aqi: aqi
+                });
+            }
+
+            if (co !== null) {
+                const aqi = calculatePollutantAQI(co, CO_BREAKPOINTS);
+                pollutantResults.push({
+                    name: 'CO',
+                    concentration: co,
+                    unit: 'ppm',
+                    aqi: aqi
+                });
+            }
+
+            if (o3 !== null) {
+                const aqi = calculatePollutantAQI(o3, O3_BREAKPOINTS);
+                pollutantResults.push({
+                    name: 'O₃',
+                    concentration: o3,
+                    unit: 'ppb',
+                    aqi: aqi
+                });
+            }
+
+            // Tìm AQI tổng (giá trị lớn nhất)
+            const validAQIs = pollutantResults.filter(p => p.aqi !== null).map(p => p.aqi);
+            
+            if (validAQIs.length === 0) {
+                errorDiv.innerHTML = '⚠️ Không thể tính AQI với các giá trị đã nhập';
+                errorDiv.classList.add('show');
+                return;
+            }
+
+            const maxAQI = Math.max(...validAQIs);
+            const category = getAQICategory(maxAQI);
+
+            // Hiển thị kết quả
+            displayResults(maxAQI, category, pollutantResults);
+        }
+
+        /**
+         * ============================================
+         * HÀM HIỂN THỊ KẾT QUẢ
+         * ============================================
+         */
+        function displayResults(maxAQI, category, pollutantResults) {
+            // Hiển thị section kết quả
+            const resultsSection = document.getElementById('resultsSection');
+            resultsSection.classList.add('show');
+
+            // Cập nhật kết quả chính
+            const mainResult = document.getElementById('mainResult');
+            mainResult.style.background = category.color;
+            mainResult.style.color = category.textColor;
+
+            document.getElementById('aqiValue').textContent = maxAQI;
+            document.getElementById('aqiLabel').textContent = category.label;
+            document.getElementById('aqiDescription').textContent = category.description;
+
+            // Cập nhật bảng chi tiết
+            const tableBody = document.getElementById('detailTableBody');
+            tableBody.innerHTML = '';
+
+            for (let result of pollutantResults) {
+                const cat = result.aqi !== null ? getAQICategory(result.aqi) : null;
+                const row = document.createElement('tr');
+                
+                row.innerHTML = `
+                    <td><strong>${result.name}</strong></td>
+                    <td>${result.concentration} ${result.unit}</td>
+                    <td>
+                        ${result.aqi !== null 
+                            ? `<span class="aqi-badge" style="background: ${cat.color}; color: ${cat.textColor}">${result.aqi}</span>`
+                            : '<span style="color: #999">N/A</span>'
+                        }
+                    </td>
+                    <td>${cat ? cat.label : 'N/A'}</td>
+                `;
+                
+                tableBody.appendChild(row);
+            }
+
+            // Cuộn đến kết quả
+            resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        /**
+         * ============================================
+         * HÀM LÀM MỚI FORM
+         * ============================================
+         */
+        function resetForm() {
+            // Xóa tất cả input
+            const inputs = ['pm25', 'pm10', 'so2', 'no2', 'co', 'o3'];
+            for (let id of inputs) {
+                document.getElementById(id).value = '';
+            }
+
+            // Ẩn kết quả
+            document.getElementById('resultsSection').classList.remove('show');
+            
+            // Ẩn thông báo lỗi
+            document.getElementById('errorMessage').classList.remove('show');
+
+            // Cuộn lên đầu trang
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Cho phép nhấn Enter để tính toán
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                calculateAQI();
+            }
+        });
+    </script>
+</body>
+</html>
