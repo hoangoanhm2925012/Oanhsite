@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tính Chỉ Số AQI - US EPA</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        /* Font chữ tiếng Việt đẹp */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        /* Hiệu ứng gradient động cho nền */
+        .bg-nature {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 50%, #d299c2 100%);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+        }
+        
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        /* Hiệu ứng nhấp nháy cho kết quả */
+        .pulse-result {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+        
+        /* Thanh tiến trình AQI */
+        .aqi-bar {
+            background: linear-gradient(to right, 
+                #00e400 0%, #00e400 10%,      /* Tốt */
+                #ffff00 10%, #ffff00 20%,      /* Trung bình */
+                #ff7e00 20%, #ff7e00 30%,      /* Kém */
+                #ff0000 30%, #ff0000 40%,      /* Xấu */
+                #8f3f97 40%, #8f3f97 60%,      /* Rất xấu */
+                #7e0023 60%, #7e0023 100%      /* Nguy hại */
+            );
+        }
+    </style>
+</head>
+<body class="bg-nature min-h-screen flex items-center justify-center p-4">
+    
+    <!-- Container chính -->
+    <div class="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-8 max-w-lg w-full">
+        
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-600 rounded-full mb-4 shadow-lg">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path>
+                </svg>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-800 mb-2">Tính Chỉ Số Chất Lượng Không Khí</h1>
+            <p class="text-gray-600 text-sm">Theo tiêu chuẩn US EPA (Environmental Protection Agency)</p>
+        </div>
+        
+        <!-- Form nhập liệu -->
+        <div class="mb-6">
+            <label for="pm25Input" class="block text-gray-700 font-medium mb-2">
+                Nồng độ PM2.5 (µg/m³):
+            </label>
+            <div class="relative">
+                <input 
+                    type="number" 
+                    id="pm25Input" 
+                    placeholder="Nhập giá trị PM2.5..."
+                    min="0"
+                    max="1000"
+                    step="0.1"
+                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-emerald-500 focus:outline-none transition-colors text-lg"
+                >
+                <span class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm">µg/m³</span>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">
+                💡 PM2.5 là bụi mịn có đường kính ≤ 2.5 micromet
+            </p>
+        </div>
+        
+        <!-- Nút tính toán -->
+        <button 
+            id="calculateBtn"
+            onclick="calculateAQI()"
+            class="w-full bg-gradient-to-r from-emerald-500 to-green-600 text-white font-semibold py-3 px-6 rounded-xl hover:from-emerald-600 hover:to-green-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+        >
+            🔍 Tính Chỉ Số AQI
+        </button>
+        
+        <!-- Khu vực hiển thị kết quả -->
+        <div id="resultSection" class="hidden mt-8">
+            
+            <!-- Vòng tròn hiển thị AQI -->
+            <div class="flex justify-center mb-6">
+                <div id="aqiCircle" class="w-32 h-32 rounded-full flex flex-col items-center justify-center shadow-lg pulse-result">
+                    <span class="text-4xl font-bold" id="aqiValue">--</span>
+                    <span class="text-sm font-medium">AQI</span>
+                </div>
+            </div>
+            
+            <!-- Phân loại chất lượng -->
+            <div id="categoryBox" class="text-center p-4 rounded-xl mb-4">
+                <p class="text-lg font-semibold" id="categoryText">--</p>
+                <p class="text-sm mt-1" id="healthAdvice">--</p>
+            </div>
+            
+            <!-- Thanh AQI trực quan -->
+            <div class="mb-4">
+                <div class="aqi-bar h-4 rounded-full relative overflow-hidden">
+                    <div id="aqiMarker" class="absolute w-3 h-6 bg-white border-2 border-gray-800 rounded-full -top-1 transition-all duration-500" style="left: 0%"></div>
+                </div>
+                <div class="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>0</span>
+                    <span>50</span>
+                    <span>100</span>
+                    <span>150</span>
+                    <span>200</span>
+                    <span>300</span>
+                    <span>500</span>
+                </div>
+            </div>
+            
+            <!-- Thông tin chi tiết -->
+            <div class="bg-gray-50 rounded-xl p-4 text-sm">
+                <h3 class="font-semibold text-gray-700 mb-2">📊 Chi tiết tính toán:</h3>
+                <p class="text-gray-600" id="calculationDetail">--</p>
+            </div>
+        </div>
+        
+        <!-- Bảng tham khảo phân loại AQI -->
+        <div class="mt-8 pt-6 border-t border-gray-200">
+            <h3 class="font-semibold text-gray-700 mb-3 text-center">📋 Bảng Phân Loại AQI (US EPA)</h3>
+            <div class="grid grid-cols-1 gap-2 text-sm">
+                <div class="flex items-center gap-3 p-2 rounded-lg bg-green-100">
+                    <div class="w-4 h-4 rounded-full bg-[#00e400]"></div>
+                    <span class="font-medium">0-50:</span>
+                    <span>Tốt - Chất lượng không khí đạt yêu cầu</span>
+                </div>
+                <div class="flex items-center gap-3 p-2 rounded-lg bg-yellow-100">
+                    <div class="w-4 h-4 rounded-full bg-[#ffff00]"></div>
+                    <span class="font-medium">51-100:</span>
+                    <span>Trung bình - Chấp nhận được</span>
+                </div>
+                <div class="flex items-center gap-3 p-2 rounded-lg bg-orange-100">
+                    <div class="w-4 h-4 rounded-full bg-[#ff7e00]"></div>
+                    <span class="font-medium">101-150:</span>
+                    <span>Kém - Nhóm nhạy cảm cần chú ý</span>
+                </div>
+                <div class="flex items-center gap-3 p-2 rounded-lg bg-red-100">
+                    <div class="w-4 h-4 rounded-full bg-[#ff0000]"></div>
+                    <span class="font-medium">151-200:</span>
+                    <span>Xấu - Ảnh hưởng đến mọi người</span>
+                </div>
+                <div class="flex items-center gap-3 p-2 rounded-lg bg-purple-100">
+                    <div class="w-4 h-4 rounded-full bg-[#8f3f97]"></div>
+                    <span class="font-medium">201-300:</span>
+                    <span>Rất xấu - Cảnh báo sức khỏe</span>
+                </div>
+                <div class="flex items-center gap-3 p-2 rounded-lg bg-rose-100">
+                    <div class="w-4 h-4 rounded-full bg-[#7e0023]"></div>
+                    <span class="font-medium">301-500:</span>
+                    <span>Nguy hại - Khẩn cấp sức khỏe</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="mt-6 text-center text-xs text-gray-500">
+            <p>🌿 Dữ liệu dựa trên tiêu chuẩn US EPA cho PM2.5 (24 giờ)</p>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * =====================================================
+         * CÔNG CỤ TÍNH CHỈ SỐ CHẤT LƯỢNG KHÔNG KHÍ (AQI)
+         * Theo tiêu chuẩn US EPA (Environmental Protection Agency)
+         * =====================================================
+         */
+
+        /**
+         * Bảng Breakpoint AQI cho PM2.5 theo US EPA
+         * Mỗi mục chứa: [BP_Lo, BP_Hi, I_Lo, I_Hi]
+         * BP = Breakpoint nồng độ PM2.5 (µg/m³)
+         * I = Index AQI tương ứng
+         */
+        const PM25_BREAKPOINTS = [
+            { bpLo: 0.0,   bpHi: 12.0,   iLo: 0,   iHi: 50,  category: "Tốt" },
+            { bpLo: 12.1,  bpHi: 35.4,   iLo: 51,  iHi: 100, category: "Trung bình" },
+            { bpLo: 35.5,  bpHi: 55.4,   iLo: 101, iHi: 150, category: "Kém" },
+            { bpLo: 55.5,  bpHi: 150.4,  iLo: 151, iHi: 200, category: "Xấu" },
+            { bpLo: 150.5, bpHi: 250.4,  iLo: 201, iHi: 300, category: "Rất xấu" },
+            { bpLo: 250.5, bpHi: 350.4,  iLo: 301, iHi: 400, category: "Nguy hại" },
+            { bpLo: 350.5, bpHi: 500.4,  iLo: 401, iHi: 500, category: "Nguy hại" }
+        ];
+
+        /**
+         * Thông tin sức khỏe tương ứng với từng mức AQI
+         */
+        const HEALTH_ADVICE = {
+            "Tốt": "Chất lượng không khí tốt. Hoạt động ngoài trời bình thường.",
+            "Trung bình": "Nhóm nhạy cảm nên hạn chế hoạt động ngoài trời kéo dài.",
+            "Kém": "Trẻ em, người già, người bệnh hô hấp nên hạn chế ra ngoài.",
+            "Xấu": "Mọi người nên hạn chế hoạt động ngoài trời. Đeo khẩu trang khi ra ngoài.",
+            "Rất xấu": "Tránh các hoạt động ngoài trời. Đóng cửa sổ, sử dụng máy lọc không khí.",
+            "Nguy hại": "KHẨN CẤP! Ở trong nhà, tránh mọi hoạt động ngoài trời."
+        };
+
+        /**
+         * Màu sắc tương ứng với từng mức AQI
+         */
+        const AQI_COLORS = {
+            "Tốt": { bg: "bg-green-500", text: "text-white", boxBg: "bg-green-100", boxText: "text-green-800" },
+            "Trung bình": { bg: "bg-yellow-400", text: "text-gray-800", boxBg: "bg-yellow-100", boxText: "text-yellow-800" },
+            "Kém": { bg: "bg-orange-500", text: "text-white", boxBg: "bg-orange-100", boxText: "text-orange-800" },
+            "Xấu": { bg: "bg-red-500", text: "text-white", boxBg: "bg-red-100", boxText: "text-red-800" },
+            "Rất xấu": { bg: "bg-purple-600", text: "text-white", boxBg: "bg-purple-100", boxText: "text-purple-800" },
+            "Nguy hại": { bg: "bg-rose-900", text: "text-white", boxBg: "bg-rose-100", boxText: "text-rose-800" }
+        };
+
+        /**
+         * Hàm tính chỉ số AQI từ nồng độ PM2.5
+         * Sử dụng công thức US EPA:
+         * AQI = ((I_Hi - I_Lo) / (BP_Hi - BP_Lo)) * (C_p - BP_Lo) + I_Lo
+         * 
+         * @param {number} concentration - Nồng độ PM2.5 (µg/m³)
+         * @returns {object} - Kết quả gồm AQI, category và thông tin breakpoint
+         */
+        function computeAQI(concentration) {
+            // Làm tròn nồng độ đến 1 chữ số thập phân (theo quy định US EPA)
+            const Cp = Math.round(concentration * 10) / 10;
+            
+            // Kiểm tra giới hạn
+            if (Cp < 0) {
+                return { error: "Nồng độ không thể âm!" };
+            }
+            
+            if (Cp > 500.4) {
+                return { 
+                    aqi: 500, 
+                    category: "Nguy hại", 
+                    note: "Vượt quá thang đo (>500.4 µg/m³)",
+                    breakpoint: PM25_BREAKPOINTS[6]
+                };
+            }
+            
+            // Tìm breakpoint phù hợp
+            for (let bp of PM25_BREAKPOINTS) {
+                if (Cp >= bp.bpLo && Cp <= bp.bpHi) {
+                    // Áp dụng công thức AQI
+                    const aqi = ((bp.iHi - bp.iLo) / (bp.bpHi - bp.bpLo)) * (Cp - bp.bpLo) + bp.iLo;
+                    
+                    return {
+                        aqi: Math.round(aqi),  // Làm tròn đến số nguyên
+                        category: bp.category,
+                        breakpoint: bp,
+                        truncatedConcentration: Cp
+                    };
+                }
+            }
+            
+            return { error: "Không tìm được breakpoint phù hợp!" };
+        }
+
+        /**
+         * Hàm chính xử lý tính toán và hiển thị kết quả
+         */
+        function calculateAQI() {
+            // Lấy giá trị từ input
+            const inputElement = document.getElementById('pm25Input');
+            const inputValue = parseFloat(inputElement.value);
+            
+            // Kiểm tra đầu vào hợp lệ
+            if (isNaN(inputValue) || inputValue === '') {
+                alert('⚠️ Vui lòng nhập giá trị PM2.5 hợp lệ!');
+                inputElement.focus();
+                return;
+            }
+            
+            if (inputValue < 0) {
+                alert('⚠️ Nồng độ PM2.5 không thể là số âm!');
+                inputElement.focus();
+                return;
+            }
+            
+            // Tính toán AQI
+            const result = computeAQI(inputValue);
+            
+            // Kiểm tra lỗi
+            if (result.error) {
+                alert('❌ ' + result.error);
+                return;
+            }
+            
+            // Hiển thị kết quả
+            displayResult(result, inputValue);
+        }
+
+        /**
+         * Hàm hiển thị kết quả lên giao diện
+         * @param {object} result - Kết quả tính toán AQI
+         * @param {number} originalValue - Giá trị PM2.5 gốc người dùng nhập
+         */
+        function displayResult(result, originalValue) {
+            // Hiện khu vực kết quả
+            const resultSection = document.getElementById('resultSection');
+            resultSection.classList.remove('hidden');
+            
+            // Cập nhật giá trị AQI
+            const aqiValueElement = document.getElementById('aqiValue');
+            aqiValueElement.textContent = result.aqi;
+            
+            // Lấy màu sắc tương ứng
+            const colors = AQI_COLORS[result.category];
+            
+            // Cập nhật vòng tròn AQI
+            const aqiCircle = document.getElementById('aqiCircle');
+            aqiCircle.className = `w-32 h-32 rounded-full flex flex-col items-center justify-center shadow-lg pulse-result ${colors.bg} ${colors.text}`;
+            
+            // Cập nhật phân loại
+            const categoryBox = document.getElementById('categoryBox');
+            categoryBox.className = `text-center p-4 rounded-xl mb-4 ${colors.boxBg}`;
+            
+            const categoryText = document.getElementById('categoryText');
+            categoryText.textContent = `🏷️ Phân loại: ${result.category}`;
+            categoryText.className = `text-lg font-semibold ${colors.boxText}`;
+            
+            // Cập nhật lời khuyên sức khỏe
+            const healthAdvice = document.getElementById('healthAdvice');
+            healthAdvice.textContent = HEALTH_ADVICE[result.category];
+            healthAdvice.className = `text-sm mt-1 ${colors.boxText}`;
+            
+            // Cập nhật vị trí marker trên thanh AQI
+            const marker = document.getElementById('aqiMarker');
+            const markerPosition = Math.min((result.aqi / 500) * 100, 100);
+            marker.style.left = `calc(${markerPosition}% - 6px)`;
+            
+            // Cập nhật chi tiết tính toán
+            const bp = result.breakpoint;
+            const detail = document.getElementById('calculationDetail');
+            detail.innerHTML = `
+                <strong>Công thức US EPA:</strong><br>
+                AQI = ((I<sub>Hi</sub> - I<sub>Lo</sub>) / (BP<sub>Hi</sub> - BP<sub>Lo</sub>)) × (C<sub>p</sub> - BP<sub>Lo</sub>) + I<sub>Lo</sub><br><br>
+                <strong>Áp dụng:</strong><br>
+                • Nồng độ PM2.5 nhập: ${originalValue} µg/m³<br>
+                • Nồng độ làm tròn (C<sub>p</sub>): ${result.truncatedConcentration || originalValue} µg/m³<br>
+                • Breakpoint: ${bp.bpLo} - ${bp.bpHi} µg/m³<br>
+                • Index tương ứng: ${bp.iLo} - ${bp.iHi}<br>
+                • <strong>Kết quả AQI = ${result.aqi}</strong>
+                ${result.note ? `<br>• ⚠️ ${result.note}` : ''}
+            `;
+            
+            // Cuộn đến kết quả
+            resultSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // Cho phép nhấn Enter để tính toán
+        document.getElementById('pm25Input').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                calculateAQI();
+            }
+        });
+
+        // Focus vào ô input khi trang load
+        window.onload = function() {
+            document.getElementById('pm25Input').focus();
+        };
+    </script>
+</body>
+</html>
